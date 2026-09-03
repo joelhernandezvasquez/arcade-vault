@@ -1,6 +1,6 @@
 # 01 — MVP pantallas visuales de Arcade Vault
 
-**Estado:** Approvado
+**Estado:** Implementado
 **Depende de:** —
 **Fecha:** 2026-09-03
 **Objetivo:** Portar a Next.js (App Router, TypeScript, React 19) todas las pantallas visuales del prototipo estático en `references/templates/`, sin implementar ningún juego real ni backend.
@@ -50,15 +50,15 @@ El código ya existe y compila; los pasos son de verificación y cierre, no de c
 
 ## Criterios de aceptación
 
-- [ ] Las 5 pantallas (biblioteca, detalle, reproductor, auth, salón) están accesibles por URL real y enlazadas entre sí sin rutas rotas.
-- [ ] La búsqueda y los filtros por categoría en la biblioteca funcionan y muestran el estado "NO HAY RESULTADOS" cuando corresponde.
-- [ ] El reproductor incrementa puntuación automáticamente, permite pausar/reanudar, y al terminar la partida permite guardar la puntuación con iniciales (persistida en `localStorage`).
-- [ ] El login (con cualquier usuario/contraseña) y el modo invitado navegan de vuelta a la biblioteca y reflejan el estado de sesión en la nav.
-- [ ] El Salón de la Fama muestra podio + tabla por cada juego del catálogo, y una fila "tu marca" adicional cuando hay sesión iniciada.
-- [ ] El menú móvil (hamburguesa) abre/cierra el panel lateral y navega correctamente.
-- [ ] Visitar un `id` de juego inexistente en `/juego/[id]` o `/jugar/[id]` muestra la página 404 de Next.js.
-- [ ] `npm run lint` y `npm run build` terminan sin errores.
-- [ ] Ningún juego real está implementado — el reproductor es puramente decorativo/animado.
+- [x] Las 5 pantallas (biblioteca, detalle, reproductor, auth, salón) están accesibles por URL real y enlazadas entre sí sin rutas rotas.
+- [x] La búsqueda y los filtros por categoría en la biblioteca funcionan y muestran el estado "NO HAY RESULTADOS" cuando corresponde.
+- [x] El reproductor incrementa puntuación automáticamente, permite pausar/reanudar, y al terminar la partida permite guardar la puntuación con iniciales (persistida en `localStorage`).
+- [x] El login (con cualquier usuario/contraseña) y el modo invitado navegan de vuelta a la biblioteca y reflejan el estado de sesión en la nav.
+- [x] El Salón de la Fama muestra podio + tabla por cada juego del catálogo, y una fila "tu marca" adicional cuando hay sesión iniciada.
+- [x] El menú móvil (hamburguesa) abre/cierra el panel lateral y navega correctamente.
+- [x] Visitar un `id` de juego inexistente en `/juego/[id]` o `/jugar/[id]` muestra la página 404 de Next.js.
+- [x] `npm run lint` y `npm run build` terminan sin errores.
+- [x] Ningún juego real está implementado — el reproductor es puramente decorativo/animado.
 
 ## Decisiones tomadas y descartadas
 

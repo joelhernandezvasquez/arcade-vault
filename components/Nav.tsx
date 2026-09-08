@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useUser } from "./UserProvider";
 
-type Section = "biblioteca" | "salon" | "auth";
+type Section = "inicio" | "biblioteca" | "salon" | "auth";
 
 export function Nav() {
   const router = useRouter();
@@ -13,7 +13,9 @@ export function Nav() {
   const [open, setOpen] = useState(false);
 
   const isActive = (name: Section) => {
-    if (name === "biblioteca") return pathname === "/" || pathname.startsWith("/juego") || pathname.startsWith("/jugar");
+    if (name === "inicio") return pathname === "/";
+    if (name === "biblioteca")
+      return pathname === "/biblioteca" || pathname.startsWith("/juego") || pathname.startsWith("/jugar");
     if (name === "salon") return pathname === "/salon";
     return pathname === "/auth";
   };
@@ -33,7 +35,8 @@ export function Nav() {
           </div>
         </div>
         <div className="links">
-          <a className={isActive("biblioteca") ? "active" : ""} onClick={() => go("/")}>Biblioteca</a>
+          <a className={isActive("inicio") ? "active" : ""} onClick={() => go("/")}>Inicio</a>
+          <a className={isActive("biblioteca") ? "active" : ""} onClick={() => go("/biblioteca")}>Biblioteca</a>
           <a className={isActive("salon") ? "active" : ""} onClick={() => go("/salon")}>Salón de la Fama</a>
         </div>
         <div className="spacer"></div>
@@ -52,7 +55,8 @@ export function Nav() {
       <div className={"av-mobile-backdrop" + (open ? " open" : "")} onClick={() => setOpen(false)}></div>
       <aside className={"av-mobile-panel" + (open ? " open" : "")}>
         <div className="pixel neon-cyan" style={{ fontSize: 11, marginBottom: 16 }}>MENÚ</div>
-        <a className={isActive("biblioteca") ? "active" : ""} onClick={() => go("/")}>Biblioteca</a>
+        <a className={isActive("inicio") ? "active" : ""} onClick={() => go("/")}>Inicio</a>
+        <a className={isActive("biblioteca") ? "active" : ""} onClick={() => go("/biblioteca")}>Biblioteca</a>
         <a className={isActive("salon") ? "active" : ""} onClick={() => go("/salon")}>Salón de la Fama</a>
         <a className={isActive("auth") ? "active" : ""} onClick={() => go("/auth")}>{user ? "Cuenta" : "Iniciar Sesión"}</a>
         <div style={{ flex: 1 }}></div>

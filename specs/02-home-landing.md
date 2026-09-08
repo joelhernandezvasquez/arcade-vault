@@ -1,6 +1,6 @@
 # 02 — Home / landing page de Arcade Vault
 
-**Estado:** Approvado
+**Estado:** Implementado
 **Depende de:** SPEC 01
 **Fecha:** 2026-09-08
 **Objetivo:** Portar a Next.js la pantalla de inicio (`home.jsx`) del prototipo en `references/templates/home-about/`, moviendo la Biblioteca actual de `/` a `/biblioteca` y dejando la Home como landing en `/`, sin tocar la pantalla "Acerca de".
@@ -42,13 +42,13 @@ No se introduce modelo nuevo. La Home reutiliza `Game` y `GAMES` de `lib/data.ts
 
 ## Criterios de aceptación
 
-- [ ] `/` muestra la Home del template (`home.jsx`) con sus 7 secciones en el mismo orden, y `/biblioteca` muestra exactamente lo que hoy muestra `/`.
-- [ ] El Nav muestra "Inicio" y "Biblioteca" como links separados; "Inicio" está activo solo en `/`, "Biblioteca" está activo en `/biblioteca`, `/juego/[id]` y `/jugar/[id]`.
-- [ ] Todos los CTAs de la Home navegan a la ruta correcta (`/biblioteca`, `/auth`, `/salon`, `/juego/[id]`).
-- [ ] Las silhouettes flotantes del hero y las feature-cards se ven y animan igual que en el prototipo (glow, hover, reveal-on-scroll al hacer scroll).
-- [ ] Los botones "volver"/"volver a la biblioteca" en salón, detalle, reproductor y auth navegan a `/biblioteca`, no a `/`.
-- [ ] `npm run lint` y `npm run build` terminan sin errores.
-- [ ] La pantalla "Acerca de" no se toca ni se crea en este spec.
+- [x] `/` muestra la Home del template (`home.jsx`) con sus 7 secciones en el mismo orden, y `/biblioteca` muestra exactamente lo que hoy muestra `/`.
+- [x] El Nav muestra "Inicio" y "Biblioteca" como links separados; "Inicio" está activo solo en `/`, "Biblioteca" está activo en `/biblioteca`, `/juego/[id]` y `/jugar/[id]`.
+- [x] Todos los CTAs de la Home navegan a la ruta correcta (`/biblioteca`, `/auth`, `/salon`, `/juego/[id]`).
+- [x] Las silhouettes flotantes del hero y las feature-cards se ven y animan igual que en el prototipo (glow, hover, reveal-on-scroll al hacer scroll).
+- [x] Los botones "volver"/"volver a la biblioteca" en salón, detalle, reproductor y auth navegan a `/biblioteca`, no a `/`.
+- [x] `npm run lint` y `npm run build` terminan sin errores.
+- [x] La pantalla "Acerca de" no se toca ni se crea en este spec.
 
 ## Decisiones tomadas y descartadas
 

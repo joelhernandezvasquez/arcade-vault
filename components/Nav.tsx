@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useUser } from "./UserProvider";
 
-type Section = "inicio" | "biblioteca" | "salon" | "auth";
+type Section = "inicio" | "biblioteca" | "salon" | "acerca" | "auth";
 
 export function Nav() {
   const router = useRouter();
@@ -17,6 +17,7 @@ export function Nav() {
     if (name === "biblioteca")
       return pathname === "/biblioteca" || pathname.startsWith("/juego") || pathname.startsWith("/jugar");
     if (name === "salon") return pathname === "/salon";
+    if (name === "acerca") return pathname === "/acerca-de";
     return pathname === "/auth";
   };
 
@@ -38,6 +39,7 @@ export function Nav() {
           <a className={isActive("inicio") ? "active" : ""} onClick={() => go("/")}>Inicio</a>
           <a className={isActive("biblioteca") ? "active" : ""} onClick={() => go("/biblioteca")}>Biblioteca</a>
           <a className={isActive("salon") ? "active" : ""} onClick={() => go("/salon")}>Salón de la Fama</a>
+          <a className={isActive("acerca") ? "active" : ""} onClick={() => go("/acerca-de")}>Acerca de</a>
         </div>
         <div className="spacer"></div>
         <div className="coin-counter">
@@ -58,6 +60,7 @@ export function Nav() {
         <a className={isActive("inicio") ? "active" : ""} onClick={() => go("/")}>Inicio</a>
         <a className={isActive("biblioteca") ? "active" : ""} onClick={() => go("/biblioteca")}>Biblioteca</a>
         <a className={isActive("salon") ? "active" : ""} onClick={() => go("/salon")}>Salón de la Fama</a>
+        <a className={isActive("acerca") ? "active" : ""} onClick={() => go("/acerca-de")}>Acerca de</a>
         <a className={isActive("auth") ? "active" : ""} onClick={() => go("/auth")}>{user ? "Cuenta" : "Iniciar Sesión"}</a>
         <div style={{ flex: 1 }}></div>
         <div className="pixel" style={{ fontSize: 9, color: "var(--ink-faint)", letterSpacing: "0.16em" }}>CRÉDITOS · 03</div>

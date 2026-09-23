@@ -1,20 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter, notFound } from "next/navigation";
 import { GAMES } from "@/lib/data";
 import { useUser } from "@/components/UserProvider";
 import { saveScore } from "@/lib/scores";
+import AsteroidsGame, {
+  AsteroidsGameHandle,
+} from "@/components/games/AsteroidsGame";
 
 export default function GamePlayerPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useUser();
   const game = GAMES.find((g) => g.id === id);
+  const isAsteroids = game?.id === "asteroids";
+  const asteroidsRef = useRef<AsteroidsGameHandle>(null);
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
-  const level = Math.floor(score / 2500) + 1;
+  const [asteroidsLevel, setAsteroidsLevel] = useState(1);
+  const level = isAsteroids ? asteroidsLevel : Math.floor(score / 2500) + 1;
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : "INVITADO");
@@ -28,20 +34,28 @@ export default function GamePlayerPage() {
   }, [user]);
 
   useEffect(() => {
-    if (over || paused) return;
-    const t = setInterval(() => setScore((s) => s + Math.floor(10 + Math.random() * 90)), 220);
+    if (isAsteroids || over || paused) return;
+    const t = setInterval(
+      () => setScore((s) => s + Math.floor(10 + Math.random() * 90)),
+      220,
+    );
     return () => clearInterval(t);
-  }, [over, paused]);
+  }, [isAsteroids, over, paused]);
 
   if (!game) notFound();
 
-  const endGame = () => setOver(true);
+  const endGame = () => {
+    if (isAsteroids) asteroidsRef.current?.forceGameOver();
+    else setOver(true);
+  };
   const restart = () => {
     setScore(0);
     setLives(3);
+    setAsteroidsLevel(1);
     setPaused(false);
     setOver(false);
     setSaved(false);
+    if (isAsteroids) asteroidsRef.current?.reset();
   };
 
   return (
@@ -50,7 +64,9 @@ export default function GamePlayerPage() {
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
           <div className="hud-stat">
             <div className="l">Jugador</div>
-            <div className="v" style={{ color: "var(--ink)" }}>{name}</div>
+            <div className="v" style={{ color: "var(--ink)" }}>
+              {name}
+            </div>
           </div>
           <div className="hud-stat">
             <div className="l">Puntuación</div>
@@ -69,25 +85,58 @@ export default function GamePlayerPage() {
           <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
-          <button className="btn magenta" onClick={endGame}>FIN</button>
-          <button className="btn ghost" onClick={() => router.push(`/juego/${game.id}`)}>SALIR</button>
+          <button className="btn magenta" onClick={endGame}>
+            FIN
+          </button>
+          <button
+            className="btn ghost"
+            onClick={() => router.push(`/juego/${game.id}`)}
+          >
+            SALIR
+          </button>
         </div>
       </div>
 
       <div className="crt">
         <div className="crt-screen">
-          <div className="game-arena">
-            <div className="grid-floor"></div>
-            <div className="enemy e1"></div>
-            <div className="enemy e2"></div>
-            <div className="enemy e3"></div>
-            <div className="player-ship"></div>
-          </div>
+          {isAsteroids ? (
+            <AsteroidsGame
+              ref={asteroidsRef}
+              paused={paused}
+              onStateChange={(s) => {
+                setScore(s.score);
+                setLives(s.lives);
+                setAsteroidsLevel(s.level);
+                if (s.gameOver) setOver(true);
+              }}
+            />
+          ) : (
+            <div className="game-arena">
+              <div className="grid-floor"></div>
+              <div className="enemy e1"></div>
+              <div className="enemy e2"></div>
+              <div className="enemy e3"></div>
+              <div className="player-ship"></div>
+            </div>
+          )}
           {paused && (
-            <div className="crt-content" style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}>
+            <div
+              className="crt-content"
+              style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}
+            >
               <div>
-                <div className="pixel neon-yellow" style={{ fontSize: 22 }}>EN PAUSA</div>
-                <div className="mono" style={{ fontSize: 11, color: "var(--ink-dim)", marginTop: 10, letterSpacing: "0.16em" }}>
+                <div className="pixel neon-yellow" style={{ fontSize: 22 }}>
+                  EN PAUSA
+                </div>
+                <div
+                  className="mono"
+                  style={{
+                    fontSize: 11,
+                    color: "var(--ink-dim)",
+                    marginTop: 10,
+                    letterSpacing: "0.16em",
+                  }}
+                >
                   PULSA REANUDAR PARA CONTINUAR
                 </div>
               </div>
@@ -111,7 +160,9 @@ export default function GamePlayerPage() {
               <div className="input-row">
                 <input
                   value={name}
-                  onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
+                  onChange={(e) =>
+                    setName(e.target.value.toUpperCase().slice(0, 10))
+                  }
                   placeholder="TUS INICIALES"
                 />
                 <button
@@ -128,8 +179,15 @@ export default function GamePlayerPage() {
               <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
             )}
             <div className="actions">
-              <button className="btn" onClick={restart}>JUGAR DE NUEVO</button>
-              <button className="btn magenta" onClick={() => router.push("/biblioteca")}>VOLVER AL VAULT</button>
+              <button className="btn" onClick={restart}>
+                JUGAR DE NUEVO
+              </button>
+              <button
+                className="btn magenta"
+                onClick={() => router.push("/biblioteca")}
+              >
+                VOLVER AL VAULT
+              </button>
             </div>
           </div>
         </div>

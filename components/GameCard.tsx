@@ -1,9 +1,15 @@
 "use client";
 
 import { useRef, type MouseEvent } from "react";
-import type { Game } from "@/lib/data";
+import type { Game } from "@/lib/supabase/games";
 
-export function GameCard({ game, onSelect }: { game: Game; onSelect: (game: Game) => void }) {
+export function GameCard({
+  game,
+  onSelect,
+}: {
+  game: Game;
+  onSelect: (game: Game) => void;
+}) {
   const tiltRef = useRef<HTMLDivElement>(null);
 
   const onMove = (e: MouseEvent<HTMLDivElement>) => {
@@ -22,7 +28,13 @@ export function GameCard({ game, onSelect }: { game: Game; onSelect: (game: Game
   };
 
   return (
-    <div ref={tiltRef} className="card" onMouseMove={onMove} onMouseLeave={onLeave} onClick={() => onSelect(game)}>
+    <div
+      ref={tiltRef}
+      className="card"
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      onClick={() => onSelect(game)}
+    >
       <div className="cover">
         <div className={"cover-bg " + game.cover}></div>
         <div className="label">{game.cat}</div>
@@ -36,7 +48,14 @@ export function GameCard({ game, onSelect }: { game: Game; onSelect: (game: Game
             <b>{game.best.toLocaleString("es-ES")}</b>
           </div>
           <button
-            className={"btn " + (game.color === "magenta" ? "magenta" : game.color === "yellow" ? "yellow" : "")}
+            className={
+              "btn " +
+              (game.color === "magenta"
+                ? "magenta"
+                : game.color === "yellow"
+                  ? "yellow"
+                  : "")
+            }
             onClick={(e) => {
               e.stopPropagation();
               onSelect(game);

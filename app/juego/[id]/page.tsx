@@ -1,14 +1,31 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter, notFound } from "next/navigation";
-import { GAMES, seededScores } from "@/lib/data";
+import { getGames, type Game } from "@/lib/supabase/games";
+import { getTopScores, type ScoreRow } from "@/lib/supabase/scores";
 
 export default function GameDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const game = useMemo(() => GAMES.find((g) => g.id === id), [id]);
-  const scores = useMemo(() => seededScores(id.length * 17 + 3, 10), [id]);
+  const [game, setGame] = useState<Game | null | undefined>(undefined);
+  const [scores, setScores] = useState<ScoreRow[] | null>(null);
+
+  useEffect(() => {
+    getGames().then((games) => setGame(games.find((g) => g.id === id) ?? null));
+    getTopScores(id, 10).then(setScores);
+  }, [id]);
+
+  if (game === undefined || scores === null) {
+    return (
+      <div
+        className="av-detail fade-in"
+        style={{ textAlign: "center", padding: 80 }}
+      >
+        <div className="pixel">CARGANDO...</div>
+      </div>
+    );
+  }
 
   if (!game) notFound();
 
@@ -34,22 +51,40 @@ export default function GameDetailPage() {
             </div>
             <div>
               <div className="l">Mejor global</div>
-              <div className="v" style={{ color: "var(--magenta)", textShadow: "0 0 6px rgba(255,0,110,0.5)" }}>
+              <div
+                className="v"
+                style={{
+                  color: "var(--magenta)",
+                  textShadow: "0 0 6px rgba(255,0,110,0.5)",
+                }}
+              >
                 {game.best.toLocaleString("es-ES")}
               </div>
             </div>
             <div>
               <div className="l">Dificultad</div>
-              <div className="v" style={{ color: "var(--yellow)", textShadow: "0 0 6px rgba(245,255,0,0.5)" }}>
+              <div
+                className="v"
+                style={{
+                  color: "var(--yellow)",
+                  textShadow: "0 0 6px rgba(245,255,0,0.5)",
+                }}
+              >
                 ★ ★ ★ ☆ ☆
               </div>
             </div>
           </div>
           <div className="detail-actions">
-            <button className="btn xl pulse" onClick={() => router.push(`/jugar/${game.id}`)}>
+            <button
+              className="btn xl pulse"
+              onClick={() => router.push(`/jugar/${game.id}`)}
+            >
               ▶ JUGAR AHORA
             </button>
-            <button className="btn ghost lg" onClick={() => router.push("/biblioteca")}>
+            <button
+              className="btn ghost lg"
+              onClick={() => router.push("/biblioteca")}
+            >
               VOLVER AL VAULT
             </button>
           </div>
@@ -59,16 +94,48 @@ export default function GameDetailPage() {
       <aside>
         <div className="leaderboard">
           <h3>MEJORES PUNTUACIONES</h3>
-          {scores.map((r, i) => (
-            <div key={r.name} className={"lb-row" + (i === 0 ? " top1" : i === 1 ? " top2" : i === 2 ? " top3" : "")}>
-              <div className="rk">#{String(r.rank).padStart(2, "0")}</div>
-              <div className="pl">
-                {r.name}
-                <div style={{ fontSize: 10, color: "var(--ink-faint)", letterSpacing: "0.1em" }}>{r.date}</div>
-              </div>
-              <div className="sc">{r.score.toLocaleString("es-ES")}</div>
+          {scores.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: 24,
+                color: "var(--ink-faint)",
+              }}
+            >
+              SIN PUNTUACIONES TODAVÍA
             </div>
-          ))}
+          ) : (
+            scores.map((r, i) => (
+              <div
+                key={r.id}
+                className={
+                  "lb-row" +
+                  (i === 0
+                    ? " top1"
+                    : i === 1
+                      ? " top2"
+                      : i === 2
+                        ? " top3"
+                        : "")
+                }
+              >
+                <div className="rk">#{String(i + 1).padStart(2, "0")}</div>
+                <div className="pl">
+                  {r.name}
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "var(--ink-faint)",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    {new Date(r.createdAt).toLocaleDateString("es-ES")}
+                  </div>
+                </div>
+                <div className="sc">{r.score.toLocaleString("es-ES")}</div>
+              </div>
+            ))
+          )}
         </div>
       </aside>
     </div>

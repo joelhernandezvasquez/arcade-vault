@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter, notFound } from "next/navigation";
-import { GAMES } from "@/lib/data";
+import { getGames, type Game } from "@/lib/supabase/games";
 import { useUser } from "@/components/UserProvider";
-import { saveScore } from "@/lib/scores";
+import { saveScore } from "@/lib/supabase/scores";
 import AsteroidsGame, {
   AsteroidsGameHandle,
 } from "@/components/games/AsteroidsGame";
@@ -13,7 +13,7 @@ export default function GamePlayerPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useUser();
-  const game = GAMES.find((g) => g.id === id);
+  const [game, setGame] = useState<Game | null | undefined>(undefined);
   const isAsteroids = game?.id === "asteroids";
   const asteroidsRef = useRef<AsteroidsGameHandle>(null);
 
@@ -25,6 +25,11 @@ export default function GamePlayerPage() {
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : "INVITADO");
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+
+  useEffect(() => {
+    getGames().then((games) => setGame(games.find((g) => g.id === id) ?? null));
+  }, [id]);
 
   useEffect(() => {
     // Syncs the editable initials field once the persisted session finishes
@@ -42,6 +47,17 @@ export default function GamePlayerPage() {
     return () => clearInterval(t);
   }, [isAsteroids, over, paused]);
 
+  if (game === undefined) {
+    return (
+      <div
+        className="av-player fade-in"
+        style={{ textAlign: "center", padding: 80 }}
+      >
+        <div className="pixel">CARGANDO...</div>
+      </div>
+    );
+  }
+
   if (!game) notFound();
 
   const endGame = () => {
@@ -55,6 +71,7 @@ export default function GamePlayerPage() {
     setPaused(false);
     setOver(false);
     setSaved(false);
+    setSaveError(false);
     if (isAsteroids) asteroidsRef.current?.reset();
   };
 
@@ -168,12 +185,22 @@ export default function GamePlayerPage() {
                 <button
                   className="btn yellow"
                   onClick={() => {
-                    saveScore({ game: game.id, score, name });
-                    setSaved(true);
+                    setSaveError(false);
+                    saveScore({ gameId: game.id, score, name })
+                      .then(() => setSaved(true))
+                      .catch(() => setSaveError(true));
                   }}
                 >
                   GUARDAR PUNTUACIÓN
                 </button>
+                {saveError && (
+                  <div
+                    className="mono"
+                    style={{ color: "var(--magenta)", marginTop: 8 }}
+                  >
+                    NO SE PUDO GUARDAR LA PUNTUACIÓN. INTENTA DE NUEVO.
+                  </div>
+                )}
               </div>
             ) : (
               <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>

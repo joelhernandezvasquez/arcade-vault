@@ -1,6 +1,6 @@
 # 07 — Motor genérico de juegos y registro de motores
 
-**Estado:** Approved
+**Estado:** Implementado
 **Depende de:** SPEC 05, SPEC 06
 **Fecha:** 2026-09-28
 **Objetivo:** Extraer un contrato `GameEngine` compartido y un registro `id → motor` de la implementación actual de `asteroids`, para que `app/jugar/[id]/page.tsx` deje de tener una rama `if (game.id === "asteroids")` y cada juego real nuevo solo necesite agregar un motor, una línea de registro y una migración de catálogo.
@@ -100,15 +100,15 @@ export const ENGINES: Record<string, GameDefinition> = {
 
 ## Criterios de aceptación
 
-- [ ] `lib/games/types.ts` existe y exporta `GameState`, `GameEngine`, `GameDefinition`.
-- [ ] `lib/games/registry.ts` existe y exporta `ENGINES` con la entrada `asteroids`.
-- [ ] `AsteroidsGame` (`lib/games/asteroids.ts`) implementa `GameEngine` sin cambiar su lógica interna de juego.
-- [ ] `components/games/GameCanvas.tsx` existe, es genérico sobre `GameDefinition`, y `components/games/AsteroidsGame.tsx` ya no existe.
-- [ ] `app/jugar/[id]/page.tsx` no contiene ninguna referencia literal a `"asteroids"` para decidir si renderiza el canvas real (usa `ENGINES[game.id]` en su lugar).
-- [ ] `/jugar/asteroids` se comporta exactamente igual que antes del refactor: HUD real, pausa/reanudar congela el juego, FIN y pérdida de vidas abren el mismo modal, `JUGAR DE NUEVO` reinicia el motor, `SALIR` no deja listeners ni loops huérfanos.
-- [ ] Un motor cuyo `GameState.lives` sea `null` mostraría `"—"` en el HUD de vidas (verificable leyendo el código del HUD, ya que no hay todavía ningún motor así registrado).
-- [ ] Ningún otro `id` del catálogo (`/jugar/serpentina`, `/jugar/caida`, etc.) cambia de comportamiento.
-- [ ] `npm run lint` y `npm run build` terminan sin errores.
+- [x] `lib/games/types.ts` existe y exporta `GameState`, `GameEngine`, `GameDefinition`.
+- [x] `lib/games/registry.ts` existe y exporta `ENGINES` con la entrada `asteroids`.
+- [x] `AsteroidsGame` (`lib/games/asteroids.ts`) implementa `GameEngine` sin cambiar su lógica interna de juego.
+- [x] `components/games/GameCanvas.tsx` existe, es genérico sobre `GameDefinition`, y `components/games/AsteroidsGame.tsx` ya no existe.
+- [x] `app/jugar/[id]/page.tsx` no contiene ninguna referencia literal a `"asteroids"` para decidir si renderiza el canvas real (usa `ENGINES[game.id]` en su lugar).
+- [x] `/jugar/asteroids` se comporta exactamente igual que antes del refactor: HUD real, pausa/reanudar congela el juego, FIN y pérdida de vidas abren el mismo modal, `JUGAR DE NUEVO` reinicia el motor, `SALIR` no deja listeners ni loops huérfanos.
+- [x] Un motor cuyo `GameState.lives` sea `null` mostraría `"—"` en el HUD de vidas (verificable leyendo el código del HUD, ya que no hay todavía ningún motor así registrado).
+- [x] Ningún otro `id` del catálogo (`/jugar/serpentina`, `/jugar/caida`, etc.) cambia de comportamiento.
+- [x] `npm run lint` y `npm run build` terminan sin errores.
 
 ## Decisiones tomadas y descartadas
 

@@ -1,29 +1,27 @@
 "use client";
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import {
-  AsteroidsGame as AsteroidsEngine,
-  AsteroidsState,
-} from "@/lib/games/asteroids";
+import type { GameDefinition, GameState } from "@/lib/games/types";
 
-export interface AsteroidsGameHandle {
+export interface GameCanvasHandle {
   reset: () => void;
   forceGameOver: () => void;
 }
 
-interface AsteroidsGameProps {
+interface GameCanvasProps {
+  definition: GameDefinition;
   paused: boolean;
-  onStateChange: (state: AsteroidsState) => void;
+  onStateChange: (state: GameState) => void;
 }
 
-const AsteroidsGame = forwardRef<AsteroidsGameHandle, AsteroidsGameProps>(
-  function AsteroidsGame({ paused, onStateChange }, ref) {
+const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(
+  function GameCanvas({ definition, paused, onStateChange }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const engineRef = useRef<AsteroidsEngine | null>(null);
+    const engineRef = useRef<ReturnType<GameDefinition["create"]> | null>(null);
 
     useEffect(() => {
       if (!canvasRef.current) return;
-      const engine = new AsteroidsEngine(canvasRef.current);
+      const engine = definition.create(canvasRef.current);
       engineRef.current = engine;
       engine.onStateChange(onStateChange);
       engine.start();
@@ -47,12 +45,12 @@ const AsteroidsGame = forwardRef<AsteroidsGameHandle, AsteroidsGameProps>(
     return (
       <canvas
         ref={canvasRef}
-        width={800}
-        height={600}
+        width={definition.width}
+        height={definition.height}
         style={{ width: "100%", height: "100%", display: "block" }}
       />
     );
   },
 );
 
-export default AsteroidsGame;
+export default GameCanvas;

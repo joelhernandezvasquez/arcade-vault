@@ -29,3 +29,5 @@ There is no test runner configured yet.
 ## Spec-driven workflow
 
 Per [README.md](README.md), this project follows spec-driven design using the `/spec` and `/spec-impl` skills from the [fernando-skills](https://github.com/Klerith/fernando-skills) skill pack (installed via `npx skills@latest add Klerith/fernando-skills`). Prefer these when planning and implementing new features if they are installed.
+
+New playable games (ported from [references/started-games/](references/started-games/) or built from scratch) are specced with the project-local `/add-game` skill ([.claude/skills/add-game/](.claude/skills/add-game/)), which depends on the generic engine/registry pattern from spec 07 (`lib/games/types.ts`, `lib/games/registry.ts`); the resulting spec is then implemented with `/spec-impl` like any other.

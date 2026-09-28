@@ -1,12 +1,15 @@
 // Motor de Asteroids portado de references/started-games/02-asteroids/game.js,
 // encapsulado en una clase agnóstica de React.
 
+import type { GameEngine, GameState } from "./types";
+
 const W = 800;
 const H = 600;
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
 const wrap = (v: number, max: number) => ((v % max) + max) % max;
-const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
+const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+  Math.hypot(a.x - b.x, a.y - b.y);
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const randInt = (min: number, max: number) => Math.floor(rand(min, max + 1));
 
@@ -18,13 +21,6 @@ const TRIPLE_SPREAD = 0.18;
 const RADII = [0, 16, 30, 50]; // por tamaño 1, 2, 3
 const SPEEDS = [0, 85, 55, 32]; // velocidad base por tamaño
 const POINTS = [0, 100, 50, 20]; // puntos por tamaño
-
-export interface AsteroidsState {
-  score: number;
-  lives: number;
-  level: number;
-  gameOver: boolean;
-}
 
 // ── Bullet ────────────────────────────────────────────────────────────────────
 class Bullet {
@@ -101,7 +97,10 @@ class Asteroid {
 
   split(): Asteroid[] {
     if (this.size <= 1) return [];
-    return [new Asteroid(this.x, this.y, this.size - 1), new Asteroid(this.x, this.y, this.size - 1)];
+    return [
+      new Asteroid(this.x, this.y, this.size - 1),
+      new Asteroid(this.x, this.y, this.size - 1),
+    ];
   }
 
   draw(ctx: CanvasRenderingContext2D) {
@@ -113,7 +112,8 @@ class Asteroid {
     ctx.lineJoin = "round";
     ctx.beginPath();
     ctx.moveTo(this.verts[0][0], this.verts[0][1]);
-    for (let i = 1; i < this.verts.length; i++) ctx.lineTo(this.verts[i][0], this.verts[i][1]);
+    for (let i = 1; i < this.verts.length; i++)
+      ctx.lineTo(this.verts[i][0], this.verts[i][1]);
     ctx.closePath();
     ctx.stroke();
     ctx.restore();
@@ -238,7 +238,8 @@ class Ship {
 
   draw(ctx: CanvasRenderingContext2D) {
     if (this.dead) return;
-    if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0) return;
+    if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0)
+      return;
 
     ctx.save();
     ctx.translate(this.x, this.y);
@@ -309,7 +310,7 @@ class Particle {
 
 type EngineState = "playing" | "dead" | "gameover";
 
-export class AsteroidsGame {
+export class AsteroidsGame implements GameEngine {
   private ctx: CanvasRenderingContext2D;
   private keys: Record<string, boolean> = {};
   private spacePressed = false;
@@ -331,11 +332,12 @@ export class AsteroidsGame {
   private paused = false;
   private lastTime: number | null = null;
   private rafId: number | null = null;
-  private onStateChangeCb: ((s: AsteroidsState) => void) | null = null;
-  private lastReported: AsteroidsState | null = null;
+  private onStateChangeCb: ((s: GameState) => void) | null = null;
+  private lastReported: GameState | null = null;
 
   private handleKeyDown = (e: KeyboardEvent) => {
-    if (["ArrowLeft", "ArrowRight", "ArrowUp", "Space"].includes(e.code)) e.preventDefault();
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "Space"].includes(e.code))
+      e.preventDefault();
     if (!this.keys[e.code]) {
       if (e.code === "Space") this.spacePressed = true;
     }
@@ -343,7 +345,8 @@ export class AsteroidsGame {
   };
 
   private handleKeyUp = (e: KeyboardEvent) => {
-    if (["ArrowLeft", "ArrowRight", "ArrowUp", "Space"].includes(e.code)) e.preventDefault();
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "Space"].includes(e.code))
+      e.preventDefault();
     this.keys[e.code] = false;
   };
 
@@ -356,7 +359,7 @@ export class AsteroidsGame {
     this.initGame();
   }
 
-  onStateChange(cb: (s: AsteroidsState) => void) {
+  onStateChange(cb: (s: GameState) => void) {
     this.onStateChangeCb = cb;
   }
 
@@ -457,7 +460,7 @@ export class AsteroidsGame {
   }
 
   private reportState() {
-    const s: AsteroidsState = {
+    const s: GameState = {
       score: this.score,
       lives: this.lives,
       level: this.level,
@@ -565,7 +568,10 @@ export class AsteroidsGame {
 
   private loop = (ts: number) => {
     if (!this.paused) {
-      const dt = this.lastTime === null ? 0 : Math.min((ts - this.lastTime) / 1000, 0.05);
+      const dt =
+        this.lastTime === null
+          ? 0
+          : Math.min((ts - this.lastTime) / 1000, 0.05);
       this.lastTime = ts;
       this.update(dt);
       this.draw();

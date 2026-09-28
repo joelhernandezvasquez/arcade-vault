@@ -5,22 +5,22 @@ import { useParams, useRouter, notFound } from "next/navigation";
 import { getGames, type Game } from "@/lib/supabase/games";
 import { useUser } from "@/components/UserProvider";
 import { saveScore } from "@/lib/supabase/scores";
-import AsteroidsGame, {
-  AsteroidsGameHandle,
-} from "@/components/games/AsteroidsGame";
+import GameCanvas, { GameCanvasHandle } from "@/components/games/GameCanvas";
+import { ENGINES } from "@/lib/games/registry";
+import type { GameState } from "@/lib/games/types";
 
 export default function GamePlayerPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useUser();
   const [game, setGame] = useState<Game | null | undefined>(undefined);
-  const isAsteroids = game?.id === "asteroids";
-  const asteroidsRef = useRef<AsteroidsGameHandle>(null);
+  const definition = game ? ENGINES[game.id] : undefined;
+  const engineRef = useRef<GameCanvasHandle>(null);
 
   const [score, setScore] = useState(0);
-  const [lives, setLives] = useState(3);
-  const [asteroidsLevel, setAsteroidsLevel] = useState(1);
-  const level = isAsteroids ? asteroidsLevel : Math.floor(score / 2500) + 1;
+  const [lives, setLives] = useState<GameState["lives"]>(3);
+  const [engineLevel, setEngineLevel] = useState(1);
+  const level = definition ? engineLevel : Math.floor(score / 2500) + 1;
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : "INVITADO");
@@ -39,13 +39,13 @@ export default function GamePlayerPage() {
   }, [user]);
 
   useEffect(() => {
-    if (isAsteroids || over || paused) return;
+    if (definition || over || paused) return;
     const t = setInterval(
       () => setScore((s) => s + Math.floor(10 + Math.random() * 90)),
       220,
     );
     return () => clearInterval(t);
-  }, [isAsteroids, over, paused]);
+  }, [definition, over, paused]);
 
   if (game === undefined) {
     return (
@@ -61,18 +61,18 @@ export default function GamePlayerPage() {
   if (!game) notFound();
 
   const endGame = () => {
-    if (isAsteroids) asteroidsRef.current?.forceGameOver();
+    if (definition) engineRef.current?.forceGameOver();
     else setOver(true);
   };
   const restart = () => {
     setScore(0);
     setLives(3);
-    setAsteroidsLevel(1);
+    setEngineLevel(1);
     setPaused(false);
     setOver(false);
     setSaved(false);
     setSaveError(false);
-    if (isAsteroids) asteroidsRef.current?.reset();
+    if (definition) engineRef.current?.reset();
   };
 
   return (
@@ -91,7 +91,9 @@ export default function GamePlayerPage() {
           </div>
           <div className="hud-stat lives">
             <div className="l">Vidas</div>
-            <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
+            <div className="v">
+              {lives === null ? "—" : "♥ ".repeat(lives).trim() || "—"}
+            </div>
           </div>
           <div className="hud-stat level">
             <div className="l">Nivel</div>
@@ -116,14 +118,15 @@ export default function GamePlayerPage() {
 
       <div className="crt">
         <div className="crt-screen">
-          {isAsteroids ? (
-            <AsteroidsGame
-              ref={asteroidsRef}
+          {definition ? (
+            <GameCanvas
+              ref={engineRef}
+              definition={definition}
               paused={paused}
               onStateChange={(s) => {
                 setScore(s.score);
                 setLives(s.lives);
-                setAsteroidsLevel(s.level);
+                setEngineLevel(s.level);
                 if (s.gameOver) setOver(true);
               }}
             />

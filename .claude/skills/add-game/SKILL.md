@@ -1,9 +1,9 @@
 ---
 name: add-game
-description: Designs a spec for adding a new real game to Arcade Vault's catalog — ported from references/started-games/ or built from scratch — following the engine-contract pattern from specs 05/06/07. Gathers the game-specific analysis and decisions, then hands off to the /spec skill to draft the actual spec file. Does not write game code. Use when the user wants to add, port, or integrate a new playable game.
+description: Designs a spec for adding a new real game to Arcade Vault's catalog — ported from references/started-games/ or built from scratch — following the engine-contract pattern from specs 05/06/07. Gathers the game-specific analysis and decisions, then writes the spec file to specs/ itself. Does not write game code. Use when the user wants to add, port, or integrate a new playable game.
 disable-model-invocation: true
 argument-hint: "<references/started-games/NN-nombre | descripción de un juego desde cero>"
-allowed-tools: Read, Glob, Grep, AskUserQuestion, Skill, Bash(ls:*), Bash(cat:*), Bash(date:*), Bash(wc:*)
+allowed-tools: Read, Glob, Grep, AskUserQuestion, Write(specs/*), Bash(ls:*), Bash(cat:*), Bash(date:*), Bash(wc:*)
 ---
 
 # /add-game — Especificador de juegos nuevos
@@ -35,9 +35,9 @@ Motores existentes en `lib/games/`:
 
 ## Filosofía
 
-Esta skill **no escribe código de juego ni el archivo de la spec directamente**. Su trabajo es analizar el origen del juego (una carpeta en `references/started-games/` o una idea descrita por el usuario), resolver con el usuario cómo encaja en el catálogo y en el registro de motores, y luego **invocar la skill `/spec`** (vía la herramienta Skill, `skill: "spec"`) para que sea ella quien redacte el archivo en `specs/`. `/add-game` hace el trabajo de análisis específico de juegos que `/spec` no sabe hacer por sí sola (leer un `game.js` de referencia, aplicar la checklist de portado, decidir `INSERT` vs `UPDATE` de catálogo); `/spec` sigue siendo la única que produce el archivo de spec, para que todas las specs del repo — vengan de `/add-game` o no — pasen por el mismo camino y terminen con el mismo formato. El código lo escribe `/spec-impl` después, con la spec ya aprobada.
+Esta skill **no escribe código de juego**, pero **sí escribe el archivo de la spec** en `specs/`. Su trabajo es analizar el origen del juego (una carpeta en `references/started-games/` o una idea descrita por el usuario), resolver con el usuario cómo encaja en el catálogo y en el registro de motores, y redactar `specs/NN-juego-<id>.md` siguiendo `spec-template.md`. No delega en `/spec`: el análisis específico de juegos (leer un `game.js` de referencia, aplicar la checklist de portado, decidir `INSERT` vs `UPDATE` de catálogo) y la redacción de la spec quedan en un solo paso, sin perder contexto en un traspaso. El código lo escribe `/spec-impl` después, con la spec ya aprobada.
 
-Antes de preguntarle nada al usuario, carga `engine-contract.md` (en esta misma carpeta de skill) — contiene el contrato `GameEngine`/`GameState`/`GameDefinition` y las reglas de portado que la spec debe citar y respetar. Usa `spec-template.md` (también en esta carpeta) como la forma del brief que se le entrega a `/spec` en la Fase 6 — no se escribe directamente a disco.
+Antes de preguntarle nada al usuario, carga `engine-contract.md` (en esta misma carpeta de skill) — contiene el contrato `GameEngine`/`GameState`/`GameDefinition` y las reglas de portado que la spec debe citar y respetar. Usa `spec-template.md` (también en esta carpeta) como la forma exacta de la spec que escribes en la Fase 6.
 
 ## Fase 0 — Precondición
 
@@ -93,22 +93,17 @@ Antes de escribir la spec, resuelve con el usuario (usando `AskUserQuestion` cua
 
 No avances a la Fase 6 con preguntas sin resolver.
 
-## Fase 6 — Invocar `/spec` con el brief ya resuelto
+## Fase 6 — Escribir la spec
 
-No escribas el archivo de la spec tú mismo. Arma un brief con todo lo que ya resolviste en las Fases 1–5, siguiendo la forma de `spec-template.md`, y llama a la herramienta Skill con `skill: "spec"` y ese brief como `args`. El brief debe dejar tan poco abierto como sea posible — `/spec` puede seguir preguntando por su cuenta, pero no debería tener que re-descubrir nada que ya salió en las Fases 1–5.
+Con todo lo resuelto en las Fases 1–5, escribe la spec con la herramienta Write en `specs/NN-juego-<id>.md`, siguiendo la estructura de `spec-template.md` sección por sección (sin dejar ninguna sin resolver; omite solo "Riesgos identificados" si no aplica).
 
-El `args` que le pasas a `/spec` debe incluir, explícito:
+- **Nombre de archivo**: revisa `specs/` (contexto de sesión) y usa el siguiente número disponible: `NN-juego-<id>.md`. Nunca sobrescribas una spec existente.
+- **Formato del repo**: español, encabezado en líneas negrita (`**Estado:** Draft`, `**Depende de:**`, `**Fecha:**`, `**Objetivo:**`), sin blockquotes, igual que las specs existentes. La fecha es la del contexto de sesión.
+- **Depende de**: normalmente SPEC 07, más SPEC 06 si agrega/actualiza una fila del catálogo.
+- **Valores concretos**: la migración con las columnas exactas decididas en la Fase 4, la línea de `registry.ts`, assets y clase `cover-<id>` si aplican, y lo que la Fase 5 dejó fuera.
+- **Contrato**: cita `GameEngine`/`GameState`/`GameDefinition` de `lib/games/types.ts` sin redefinirlos.
+- **Decisiones**: vuelca las de las Fases 4 y 5, con su razón, en "Decisiones tomadas y descartadas".
 
-- **El slug y número sugeridos**: revisa `specs/` (contexto de sesión) y propone `NN-juego-<id>` con el siguiente número disponible; pídele a `/spec` que respete ese nombre de archivo.
-- **El formato del repo, no el genérico de la plantilla de `/spec`**: indícale explícitamente que las specs de este repo (01–07) usan encabezado en líneas negrita (`**Estado:**`, `**Depende de:**`, `**Fecha:**`, `**Objetivo:**`), no el bloque `>` que muestra su propia plantilla por defecto, y que debe seguir ese estilo para mantener consistencia con las specs existentes.
-- **Objetivo** en una sola frase.
-- **Depende de**: normalmente SPEC 07 (motor genérico y registro), más SPEC 06 si la spec agrega/actualiza una fila del catálogo.
-- **Contexto**: de dónde sale el juego (carpeta de `references/started-games/` con lo que encontraste en la Fase 2, o "diseñado desde cero") y qué entrada del catálogo ocupa, según la Fase 4.
-- **Alcance (incluye/no incluye)** ya resuelto: el motor nuevo (`lib/games/<id>.ts`, qué se porta/qué se remueve según `engine-contract.md`), la línea nueva en `lib/games/registry.ts`, la migración (`INSERT` o `UPDATE`, con los valores concretos de columnas decididos en la Fase 4), assets si los hay, la clase `cover-<id>` si aplica, y lo que la Fase 5 dejó explícitamente fuera.
-- **Que la spec debe citar `GameEngine`/`GameState`/`GameDefinition` de `lib/games/types.ts` sin redefinirlos.**
-- **Las decisiones de las Fases 4 y 5** (reemplazo vs. entrada nueva, recoloreo o no, aspecto no 4:3 si aplica), con su razón, para que `/spec` las use directamente en su sección "Decisiones tomadas y descartadas" en vez de tener que inferirlas.
-- Referencia a `engine-contract.md` y `spec-template.md` de esta skill como fuente de las reglas de portado y la forma esperada, por si `/spec` necesita más detalle del que cabe en el brief.
-
-Después de que `/spec` termine, confírmale al usuario dónde quedó el archivo y recuérdale el siguiente paso:
+Al terminar, dile al usuario dónde quedó el archivo y el siguiente paso:
 
 > Revisa `specs/NN-juego-<id>.md`, cambia el estado a `Approved`/`Aprobado` cuando estés conforme, y ejecuta `/spec-impl NN-juego-<id>` para implementarla.

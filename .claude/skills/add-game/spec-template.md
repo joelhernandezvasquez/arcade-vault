@@ -1,12 +1,10 @@
 # Esqueleto de spec para un juego nuevo
 
-Referencia que `/add-game` usa en su Fase 6 para armar el brief que le pasa a
-la skill `/spec` (vía la herramienta Skill) — `/add-game` no escribe
-`specs/NN-juego-<id>.md` directamente, `/spec` sí. No es texto para copiar
-literal en el `args` — es la forma que debe tener el resultado final, en el
+Referencia que `/add-game` usa en su Fase 6 para escribir directamente
+`specs/NN-juego-<id>.md`. Es la forma que debe tener el resultado final, en el
 mismo estilo que las specs 05/06/07 ya existentes en este repo (español,
 encabezado con líneas en negrita, sin blockquotes). Úsalo para no dejar
-ninguna sección sin resolver en el brief.
+ninguna sección sin resolver.
 
 ```markdown
 # NN — Juego real de <NOMBRE>

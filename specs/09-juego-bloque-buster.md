@@ -84,16 +84,16 @@ Tipos internos de `lib/games/bloque-buster.ts` (detalle de implementación, no e
 
 - [x] `/jugar/bloque-buster` muestra el Arkanoid real (bloques con sprites, paleta, pelota, explosiones) en vez de la arena decorativa.
 - [x] El HUD superior (`Puntuación`, `Vidas`, `Nivel`) refleja el estado real del motor: 3 vidas, niveles 1–5.
-- [ ] Los 5 niveles tienen sus patrones y velocidades originales.
-- [ ] La paleta se controla con flechas y con mouse, con las coordenadas del mouse correctamente escaladas.
+- [x] Los 5 niveles tienen sus patrones y velocidades originales.
+- [x] La paleta se controla con flechas y con mouse, con las coordenadas del mouse correctamente escaladas.
 - [x] Perder la última vida o completar el nivel 5 abre el modal existente con la puntuación real y permite guardarla con `saveScore({ gameId: "bloque-buster", score, name })`.
 - [x] El botón `FIN` fuerza el mismo modal de fin de partida.
-- [ ] Tras el fin de partida el motor deja de aceptar entrada y no emite `gameOver` más de una vez.
+- [x] Tras el fin de partida el motor deja de aceptar entrada y no emite `gameOver` más de una vez.
 - [x] `PAUSA`/`REANUDAR` congela y reanuda el juego real.
 - [x] `JUGAR DE NUEVO` reinicia el motor a un estado limpio.
-- [ ] `SALIR` u otra navegación no deja listeners de teclado/mouse activos ni un loop de `requestAnimationFrame` en segundo plano.
-- [ ] `bloque-buster` aparece en `/salon` bajo su pestaña y en la vista previa de leaderboard de `/juego/bloque-buster` tras guardar una puntuación real.
-- [ ] Ningún otro juego del catálogo cambia de comportamiento.
+- [x] `SALIR` u otra navegación no deja listeners de teclado/mouse activos ni un loop de `requestAnimationFrame` en segundo plano.
+- [x] `bloque-buster` aparece en `/salon` bajo su pestaña y en la vista previa de leaderboard de `/juego/bloque-buster` tras guardar una puntuación real.
+- [x] Ningún otro juego del catálogo cambia de comportamiento.
 - [x] Usar las flechas no hace scroll de la página.
 - [x] `npm run lint` y `npm run build` terminan sin errores.
 

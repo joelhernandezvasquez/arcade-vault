@@ -198,6 +198,10 @@ export class BloqueBusterGame implements GameEngine {
   private lastReported: GameState | null = null;
 
   private handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      return;
+    }
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     e.preventDefault();
     this.keys[e.key] = true;

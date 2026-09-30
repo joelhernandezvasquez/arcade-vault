@@ -82,20 +82,20 @@ Tipos internos de `lib/games/bloque-buster.ts` (detalle de implementación, no e
 
 ## Criterios de aceptación
 
-- [ ] `/jugar/bloque-buster` muestra el Arkanoid real (bloques con sprites, paleta, pelota, explosiones) en vez de la arena decorativa.
-- [ ] El HUD superior (`Puntuación`, `Vidas`, `Nivel`) refleja el estado real del motor: 3 vidas, niveles 1–5.
+- [x] `/jugar/bloque-buster` muestra el Arkanoid real (bloques con sprites, paleta, pelota, explosiones) en vez de la arena decorativa.
+- [x] El HUD superior (`Puntuación`, `Vidas`, `Nivel`) refleja el estado real del motor: 3 vidas, niveles 1–5.
 - [ ] Los 5 niveles tienen sus patrones y velocidades originales.
 - [ ] La paleta se controla con flechas y con mouse, con las coordenadas del mouse correctamente escaladas.
-- [ ] Perder la última vida o completar el nivel 5 abre el modal existente con la puntuación real y permite guardarla con `saveScore({ gameId: "bloque-buster", score, name })`.
-- [ ] El botón `FIN` fuerza el mismo modal de fin de partida.
+- [x] Perder la última vida o completar el nivel 5 abre el modal existente con la puntuación real y permite guardarla con `saveScore({ gameId: "bloque-buster", score, name })`.
+- [x] El botón `FIN` fuerza el mismo modal de fin de partida.
 - [ ] Tras el fin de partida el motor deja de aceptar entrada y no emite `gameOver` más de una vez.
-- [ ] `PAUSA`/`REANUDAR` congela y reanuda el juego real.
-- [ ] `JUGAR DE NUEVO` reinicia el motor a un estado limpio.
+- [x] `PAUSA`/`REANUDAR` congela y reanuda el juego real.
+- [x] `JUGAR DE NUEVO` reinicia el motor a un estado limpio.
 - [ ] `SALIR` u otra navegación no deja listeners de teclado/mouse activos ni un loop de `requestAnimationFrame` en segundo plano.
 - [ ] `bloque-buster` aparece en `/salon` bajo su pestaña y en la vista previa de leaderboard de `/juego/bloque-buster` tras guardar una puntuación real.
 - [ ] Ningún otro juego del catálogo cambia de comportamiento.
-- [ ] Usar las flechas no hace scroll de la página.
-- [ ] `npm run lint` y `npm run build` terminan sin errores.
+- [x] Usar las flechas no hace scroll de la página.
+- [x] `npm run lint` y `npm run build` terminan sin errores.
 
 ## Decisiones tomadas y descartadas
 

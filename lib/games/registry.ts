@@ -1,6 +1,7 @@
 import { AsteroidsGame } from "./asteroids";
 import { BloqueBusterGame } from "./bloque-buster";
 import { CaidaGame } from "./caida";
+import { SerpentinaGame } from "./serpentina";
 import type { GameDefinition } from "./types";
 
 export const ENGINES: Record<string, GameDefinition> = {
@@ -18,5 +19,10 @@ export const ENGINES: Record<string, GameDefinition> = {
     width: 800,
     height: 600,
     create: (canvas) => new BloqueBusterGame(canvas),
+  },
+  serpentina: {
+    width: 800,
+    height: 600,
+    create: (canvas) => new SerpentinaGame(canvas),
   },
 };

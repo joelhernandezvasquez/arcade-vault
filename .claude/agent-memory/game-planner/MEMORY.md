@@ -1,0 +1,1 @@
+- [Propuestas de juegos](proposals.md) — registro de propuestas con estado; 4 decorativas pendientes, todas `propuesto` (2026-10-06)

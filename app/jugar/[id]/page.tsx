@@ -7,7 +7,8 @@ import { useUser } from "@/components/UserProvider";
 import { saveScore } from "@/lib/supabase/scores";
 import GameCanvas, { GameCanvasHandle } from "@/components/games/GameCanvas";
 import { ENGINES } from "@/lib/games/registry";
-import type { GameState } from "@/lib/games/types";
+import { getSkin, guardarSkin, leerSkinGuardada } from "@/lib/games/skins";
+import type { GameState, SkinId } from "@/lib/games/types";
 
 export default function GamePlayerPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,7 @@ export default function GamePlayerPage() {
   const [engineLevel, setEngineLevel] = useState(1);
   const level = definition ? engineLevel : Math.floor(score / 2500) + 1;
   const [paused, setPaused] = useState(false);
+  const [skin, setSkin] = useState<SkinId>(leerSkinGuardada);
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : "INVITADO");
   const [saved, setSaved] = useState(false);
@@ -101,6 +103,25 @@ export default function GamePlayerPage() {
           </div>
         </div>
         <div className="hud-actions">
+          {definition?.skins && (
+            <select
+              className="btn ghost skin-select"
+              aria-label="Skin"
+              value={skin}
+              onChange={(e) => {
+                const id = e.target.value as SkinId;
+                e.target.blur();
+                setSkin(id);
+                guardarSkin(id);
+              }}
+            >
+              {definition.skins.map((id) => (
+                <option key={id} value={id}>
+                  SKIN: {getSkin(id).nombre}
+                </option>
+              ))}
+            </select>
+          )}
           <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
@@ -123,6 +144,7 @@ export default function GamePlayerPage() {
               ref={engineRef}
               definition={definition}
               paused={paused}
+              skin={skin}
               onStateChange={(s) => {
                 setScore(s.score);
                 setLives(s.lives);

@@ -620,6 +620,9 @@ a { color: inherit; text-decoration: none; }
 .hud-stat.lives .v { color: var(--magenta); text-shadow: 0 0 6px rgba(255,0,110,0.5); }
 .hud-stat.level .v { color: var(--yellow); text-shadow: 0 0 6px rgba(245,255,0,0.5); }
 .hud-actions { display: flex; gap: 10px; }
+.skin-select { appearance: none; padding-right: 20px; text-transform: uppercase; }
+.skin-select:hover, .skin-select:focus-visible { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 14px rgba(0,245,255,0.45); outline: 0; }
+.skin-select option { background: var(--bg-2); color: var(--ink); }
 
 .crt {
   position: relative;

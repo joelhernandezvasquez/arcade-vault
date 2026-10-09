@@ -1,7 +1,8 @@
 // Motor de Arkanoid (BLOQUE BUSTER) portado de references/started-games/04-arkanoid/
 // (game.js, levels.js, assets/spritesheet.js), encapsulado en una clase agnóstica de React.
 
-import type { GameEngine, GameState } from "./types";
+import { DEFAULT_SKIN, getSkin, grosorTrazo } from "./skins";
+import type { GameEngine, GameState, SkinDefinition } from "./types";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const W = 800;
@@ -59,6 +60,27 @@ const EXPLOSION_SPRITE_Y: Record<BlockColor, number> = {
   yellow: 240,
   hotpink: 256,
   gray: 176,
+};
+
+// Colores de bloque por skin. `clasico` usa los sprites originales; neón y
+// retro dibujan con primitivas y estas paletas (retro: paleta reducida estilo NES).
+const NEON_BLOCK: Record<BlockColor, string> = {
+  red: "#ff8200",
+  yellow: "#f5ff00", // --yellow
+  cyan: "#00f5ff", // --cyan
+  magenta: "#c77dff",
+  hotpink: "#ff006e", // --magenta
+  green: "#00ff88", // --green
+  gray: "#e6e6f0",
+};
+const RETRO_BLOCK: Record<BlockColor, string> = {
+  red: "#fc5454",
+  yellow: "#fcfc54",
+  cyan: "#54fcfc",
+  magenta: "#fc54fc",
+  hotpink: "#fc9838",
+  green: "#58f858",
+  gray: "#fcfcfc",
 };
 
 interface LevelBlock {
@@ -177,6 +199,10 @@ export class BloqueBusterGame implements GameEngine {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private sheet: HTMLImageElement;
+  private skin: SkinDefinition;
+  // Lienzo auxiliar de baja resolución para los píxeles gruesos (retro).
+  private lowCanvas: HTMLCanvasElement | null = null;
+  private lowCtx: CanvasRenderingContext2D | null = null;
 
   private paddle = { x: 0, y: PADDLE_Y, w: PADDLE_W, h: PADDLE_H };
   private ball = { x: 0, y: 0, w: BALL_SIZE, h: BALL_SIZE, vx: 0, vy: 0 };
@@ -224,11 +250,12 @@ export class BloqueBusterGame implements GameEngine {
     );
   };
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, skin?: SkinDefinition) {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas");
     this.canvas = canvas;
     this.ctx = ctx;
+    this.skin = skin ?? getSkin(DEFAULT_SKIN);
 
     document.addEventListener("keydown", this.handleKeyDown);
     document.addEventListener("keyup", this.handleKeyUp);
@@ -256,6 +283,13 @@ export class BloqueBusterGame implements GameEngine {
     this.started = true;
     this.reportState();
     if (this.loaded) this.begin();
+  }
+
+  setSkin(skin: SkinDefinition) {
+    this.skin = skin;
+    // Con el loop detenido (pausa o fin) se redibuja el frame con la nueva skin.
+    if (this.started && this.loaded && (this.paused || this.gameOver))
+      this.draw();
   }
 
   pause() {
@@ -478,8 +512,140 @@ export class BloqueBusterGame implements GameEngine {
   }
 
   private draw() {
+    const skin = this.skin;
+    if (skin.id === "clasico") {
+      this.drawClasico();
+      return;
+    }
+    const px = skin.pixelado;
+    const main = this.ctx;
+    let ctx = main;
+    if (px > 1) {
+      // Se dibuja en un lienzo W/px x H/px (coordenadas lógicas intactas vía
+      // transform) y se amplía sin suavizado para obtener píxeles gruesos.
+      if (!this.lowCanvas || this.lowCanvas.width !== Math.ceil(W / px)) {
+        this.lowCanvas = document.createElement("canvas");
+        this.lowCanvas.width = Math.ceil(W / px);
+        this.lowCanvas.height = Math.ceil(H / px);
+        this.lowCtx = this.lowCanvas.getContext("2d");
+      }
+      if (this.lowCtx) {
+        ctx = this.lowCtx;
+        ctx.setTransform(1 / px, 0, 0, 1 / px, 0, 0);
+      }
+    }
+    ctx.imageSmoothingEnabled = skin.suavizado;
+    ctx.fillStyle = skin.paleta.fondo;
+    ctx.fillRect(0, 0, W, H);
+    this.drawPrimitivas(ctx, skin, ctx !== main);
+    if (ctx !== main && this.lowCanvas) {
+      main.imageSmoothingEnabled = false;
+      main.drawImage(this.lowCanvas, 0, 0, W, H);
+    } else {
+      main.imageSmoothingEnabled = true;
+    }
+  }
+
+  // Neón y retro: formas con primitivas, sin spritesheet.
+  private drawPrimitivas(
+    ctx: CanvasRenderingContext2D,
+    skin: SkinDefinition,
+    gruesos: boolean,
+  ) {
+    const retro = skin.pixelado > 1;
+    const colores = retro ? RETRO_BLOCK : NEON_BLOCK;
+    const p = skin.pixelado;
+    // En retro todo se ajusta a la rejilla de píxeles gruesos.
+    const snap = (v: number) => (gruesos ? Math.round(v / p) * p : v);
+
+    const caja = (
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      color: string,
+      relleno: boolean,
+    ) => {
+      ctx.save();
+      if (skin.brillo > 0) {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = skin.brillo;
+      }
+      if (relleno) {
+        ctx.fillStyle = color;
+        ctx.fillRect(snap(x), snap(y), snap(w), snap(h));
+      } else {
+        const g = grosorTrazo(skin, 1);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = g;
+        ctx.strokeRect(x + g / 2, y + g / 2, w - g, h - g);
+      }
+      ctx.restore();
+    };
+
+    for (const block of this.blocks) {
+      if (!block.alive) continue;
+      const c = colores[block.color];
+      if (retro) {
+        // Borde oscuro de un píxel grueso para separar bloques.
+        caja(block.x, block.y, block.w, block.h, c, true);
+        ctx.fillStyle = skin.paleta.fondo;
+        ctx.fillRect(block.x, block.y + block.h - p, block.w, p);
+        ctx.fillRect(block.x + block.w - p, block.y, p, block.h);
+      } else {
+        ctx.save();
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = c;
+        ctx.fillRect(block.x + 1, block.y + 1, block.w - 2, block.h - 2);
+        ctx.restore();
+        caja(block.x + 1, block.y + 1, block.w - 2, block.h - 2, c, false);
+      }
+    }
+
+    for (const exp of this.explosions) {
+      const t = Math.min(exp.elapsed / EXPLOSION_DURATION, 1);
+      const c = colores[exp.color];
+      if (retro) {
+        // 4 pasos: el bloque se encoge sin transparencia.
+        const paso = Math.min(Math.floor(t * EXPLOSION_FRAME_COUNT), 3);
+        const m = paso * p;
+        caja(exp.x + m, exp.y + m, exp.w - 2 * m, exp.h - 2 * m, c, true);
+      } else {
+        const m = -t * 8;
+        ctx.save();
+        ctx.globalAlpha = 1 - t;
+        caja(exp.x + m, exp.y + m, exp.w - 2 * m, exp.h - 2 * m, c, false);
+        ctx.restore();
+      }
+    }
+
+    const { paddle, ball } = this;
+    if (retro) {
+      caja(paddle.x, paddle.y, paddle.w, paddle.h, skin.paleta.primario, true);
+      caja(ball.x, ball.y, ball.w, ball.h, skin.paleta.secundario, true);
+    } else {
+      caja(paddle.x, paddle.y, paddle.w, paddle.h, skin.paleta.primario, true);
+      ctx.save();
+      ctx.fillStyle = skin.paleta.resalte;
+      ctx.shadowColor = skin.paleta.resalte;
+      ctx.shadowBlur = skin.brillo;
+      ctx.beginPath();
+      ctx.arc(
+        ball.x + ball.w / 2,
+        ball.y + ball.h / 2,
+        ball.w / 2,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Skin clásica: spritesheet original, sin cambios.
+  private drawClasico() {
     const { ctx } = this;
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = this.skin.paleta.fondo;
     ctx.fillRect(0, 0, W, H);
     if (!this.loaded) return;
 

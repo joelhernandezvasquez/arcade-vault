@@ -1,7 +1,8 @@
 "use client";
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import type { GameDefinition, GameState } from "@/lib/games/types";
+import { getSkin } from "@/lib/games/skins";
+import type { GameDefinition, GameState, SkinId } from "@/lib/games/types";
 
 export interface GameCanvasHandle {
   reset: () => void;
@@ -11,17 +12,18 @@ export interface GameCanvasHandle {
 interface GameCanvasProps {
   definition: GameDefinition;
   paused: boolean;
+  skin: SkinId;
   onStateChange: (state: GameState) => void;
 }
 
 const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(
-  function GameCanvas({ definition, paused, onStateChange }, ref) {
+  function GameCanvas({ definition, paused, skin, onStateChange }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const engineRef = useRef<ReturnType<GameDefinition["create"]> | null>(null);
 
     useEffect(() => {
       if (!canvasRef.current) return;
-      const engine = definition.create(canvasRef.current);
+      const engine = definition.create(canvasRef.current, getSkin(skin));
       engineRef.current = engine;
       engine.onStateChange(onStateChange);
       engine.start();
@@ -36,6 +38,10 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(
       if (paused) engineRef.current?.pause();
       else engineRef.current?.resume();
     }, [paused]);
+
+    useEffect(() => {
+      engineRef.current?.setSkin?.(getSkin(skin));
+    }, [skin]);
 
     useImperativeHandle(ref, () => ({
       reset: () => engineRef.current?.reset(),

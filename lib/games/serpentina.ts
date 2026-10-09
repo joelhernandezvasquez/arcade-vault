@@ -2,12 +2,15 @@
 // references/snake-assets/ (fruits.png + SPRITE_ATLAS de sprites.js), portadas aquí
 // como constante de solo lectura en vez de depender de window.SPRITE_ATLAS.
 
-import type { GameEngine, GameState } from "./types";
+import { DEFAULT_SKIN, getSkin } from "./skins";
+import type { GameEngine, GameState, SkinDefinition } from "./types";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const COLS = 20;
 const ROWS = 15;
 const CELL = 40; // 20×15 celdas de 40 px = lienzo lógico de 800×600
+const W = COLS * CELL;
+const H = ROWS * CELL;
 
 const START_LENGTH = 3;
 const FRUIT_POINTS = 10;
@@ -24,6 +27,56 @@ const SNAKE_COLOR = "#4675e9";
 const FRUIT_FALLBACK_COLOR = "#e5392b";
 const SNAKE_WIDTH = 28;
 const FRUIT_SIZE = CELL - 8; // margen de 4 px
+
+// Colores por skin. En clásico son los literales originales (sin cambios); en
+// neón y retro salen de la paleta de la skin.
+interface Colores {
+  tableroClaro: string;
+  tableroOscuro: string;
+  serpiente: string;
+  fruta: string;
+  brilloFruta: string;
+  ojo: string;
+  pupila: string;
+}
+
+function coloresDe(skin: SkinDefinition): Colores {
+  const p = skin.paleta;
+  switch (skin.id) {
+    case "neon":
+      return {
+        tableroClaro: "#12121c",
+        tableroOscuro: p.fondo,
+        serpiente: p.primario,
+        fruta: p.secundario,
+        brilloFruta: p.resalte,
+        ojo: "#fff",
+        pupila: p.fondo,
+      };
+    case "retro":
+      return {
+        tableroClaro: "#0c2c0c",
+        tableroOscuro: p.fondo,
+        serpiente: p.primario,
+        fruta: p.alerta,
+        brilloFruta: p.resalte,
+        ojo: p.secundario,
+        pupila: p.fondo,
+      };
+    default:
+      return {
+        tableroClaro: BOARD_LIGHT,
+        tableroOscuro: BOARD_DARK,
+        serpiente: SNAKE_COLOR,
+        fruta: FRUIT_FALLBACK_COLOR,
+        brilloFruta: FRUIT_FALLBACK_COLOR,
+        ojo: "#fff",
+        pupila: "#111",
+      };
+  }
+}
+
+const RETRO_NIVELES = 4; // niveles por canal al reducir la paleta de las frutas
 
 const FRUITS_SRC = "/games/serpentina/fruits.png";
 
@@ -92,6 +145,10 @@ const isOpposite = (a: Dir, b: Dir) => a.dx === -b.dx && a.dy === -b.dy;
 export class SerpentinaGame implements GameEngine {
   private ctx: CanvasRenderingContext2D;
   private img: HTMLImageElement;
+  private skin: SkinDefinition;
+  private retroImg: HTMLCanvasElement | null = null; // frutas con paleta reducida
+  private lowCanvas: HTMLCanvasElement | null = null;
+  private lowCtx: CanvasRenderingContext2D | null = null;
 
   // snake[0] es la cabeza, el último elemento es la cola.
   private snake: Cell[] = [];
@@ -155,7 +212,8 @@ export class SerpentinaGame implements GameEngine {
     if (this.gameDir(e)) e.preventDefault();
   };
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, skin?: SkinDefinition) {
+    this.skin = skin ?? getSkin(DEFAULT_SKIN);
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas");
     this.ctx = ctx;
@@ -188,6 +246,13 @@ export class SerpentinaGame implements GameEngine {
     this.draw();
     this.reportState();
     this.startLoop();
+  }
+
+  // Cambia la skin en caliente: no reinicia la partida ni emite estado. Se
+  // repinta siempre para que pausa y fin de partida muestren la skin nueva.
+  setSkin(skin: SkinDefinition) {
+    this.skin = skin;
+    if (!this.destroyed) this.draw();
   }
 
   pause() {
@@ -336,57 +401,126 @@ export class SerpentinaGame implements GameEngine {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   private draw() {
-    const { ctx } = this;
+    const skin = this.skin;
+    const px = skin.pixelado;
+    const main = this.ctx;
+    let ctx = main;
+
+    if (px > 1) {
+      // Se dibuja en un lienzo reducido (coordenadas lógicas intactas vía
+      // transform) y se amplía sin suavizado para obtener píxeles gruesos.
+      if (!this.lowCanvas || this.lowCanvas.width !== Math.ceil(W / px)) {
+        this.lowCanvas = document.createElement("canvas");
+        this.lowCanvas.width = Math.ceil(W / px);
+        this.lowCanvas.height = Math.ceil(H / px);
+        this.lowCtx = this.lowCanvas.getContext("2d");
+      }
+      if (this.lowCtx) {
+        ctx = this.lowCtx;
+        ctx.setTransform(1 / px, 0, 0, 1 / px, 0, 0);
+      }
+    }
+
+    const col = coloresDe(skin);
+    ctx.imageSmoothingEnabled = skin.suavizado;
 
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < COLS; x++) {
-        ctx.fillStyle = (x + y) % 2 === 0 ? BOARD_LIGHT : BOARD_DARK;
+        ctx.fillStyle =
+          (x + y) % 2 === 0 ? col.tableroClaro : col.tableroOscuro;
         ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
       }
     }
 
-    this.drawFruit();
-    this.drawSnake();
+    this.drawFruit(ctx, skin, col);
+    this.drawSnake(ctx, skin, col);
+
+    if (ctx !== main && this.lowCanvas) {
+      main.imageSmoothingEnabled = false;
+      main.drawImage(this.lowCanvas, 0, 0, W, H);
+    } else {
+      main.imageSmoothingEnabled = skin.suavizado;
+    }
   }
 
-  private drawFruit() {
-    const { ctx, fruit, fruitSprite: s } = this;
+  // Copia de las frutas con la paleta reducida (4 niveles por canal), creada
+  // una sola vez la primera vez que se usa retro.
+  private getRetroImg(): CanvasImageSource {
+    if (this.retroImg) return this.retroImg;
+    try {
+      const c = document.createElement("canvas");
+      c.width = this.img.naturalWidth;
+      c.height = this.img.naturalHeight;
+      const cx = c.getContext("2d");
+      if (!cx) return this.img;
+      cx.drawImage(this.img, 0, 0);
+      const data = cx.getImageData(0, 0, c.width, c.height);
+      const d = data.data;
+      const k = 255 / (RETRO_NIVELES - 1);
+      for (let i = 0; i < d.length; i += 4) {
+        d[i] = Math.round(d[i] / k) * k;
+        d[i + 1] = Math.round(d[i + 1] / k) * k;
+        d[i + 2] = Math.round(d[i + 2] / k) * k;
+        d[i + 3] = d[i + 3] < 128 ? 0 : 255; // sin semitransparencias
+      }
+      cx.putImageData(data, 0, 0);
+      this.retroImg = c;
+      return c;
+    } catch {
+      return this.img;
+    }
+  }
+
+  private drawFruit(
+    ctx: CanvasRenderingContext2D,
+    skin: SkinDefinition,
+    col: Colores,
+  ) {
+    const { fruit, fruitSprite: s } = this;
     const cx = fruit.x * CELL + CELL / 2;
     const cy = fruit.y * CELL + CELL / 2;
+    ctx.save();
+    if (skin.brillo > 0) {
+      ctx.shadowColor = col.brilloFruta;
+      ctx.shadowBlur = skin.brillo;
+    }
     if (!this.imgLoaded) {
-      ctx.fillStyle = FRUIT_FALLBACK_COLOR;
+      ctx.fillStyle = col.fruta;
       ctx.beginPath();
       ctx.arc(cx, cy, FRUIT_SIZE / 2, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
       return;
     }
     const scale = Math.min(FRUIT_SIZE / s.w, FRUIT_SIZE / s.h);
     const dw = s.w * scale;
     const dh = s.h * scale;
-    ctx.drawImage(
-      this.img,
-      s.x,
-      s.y,
-      s.w,
-      s.h,
-      cx - dw / 2,
-      cy - dh / 2,
-      dw,
-      dh,
-    );
+    const src = skin.id === "retro" ? this.getRetroImg() : this.img;
+    ctx.drawImage(src, s.x, s.y, s.w, s.h, cx - dw / 2, cy - dh / 2, dw, dh);
+    ctx.restore();
   }
 
-  private drawSnake() {
-    const { ctx, snake } = this;
+  private drawSnake(
+    ctx: CanvasRenderingContext2D,
+    skin: SkinDefinition,
+    col: Colores,
+  ) {
+    const { snake } = this;
+    const duro = skin.pixelado > 1;
     const center = (c: Cell) => ({
       x: c.x * CELL + CELL / 2,
       y: c.y * CELL + CELL / 2,
     });
 
-    ctx.strokeStyle = SNAKE_COLOR;
+    ctx.save();
+    if (skin.brillo > 0) {
+      ctx.shadowColor = col.serpiente;
+      ctx.shadowBlur = skin.brillo;
+    }
+    ctx.strokeStyle = col.serpiente;
     ctx.lineWidth = SNAKE_WIDTH;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    ctx.lineCap = duro ? "square" : "round";
+    ctx.lineJoin = duro ? "miter" : "round";
     ctx.beginPath();
     snake.forEach((c, i) => {
       const p = center(c);
@@ -394,6 +528,7 @@ export class SerpentinaGame implements GameEngine {
       else ctx.lineTo(p.x, p.y);
     });
     ctx.stroke();
+    ctx.restore();
 
     // Ojos: desplazados a los lados de la dirección en que mira la cabeza.
     const head = center(snake[0]);
@@ -405,11 +540,11 @@ export class SerpentinaGame implements GameEngine {
     for (const sign of [1, -1]) {
       const ex = head.x + fx + px * sign;
       const ey = head.y + fy + py * sign;
-      ctx.fillStyle = "#fff";
+      ctx.fillStyle = col.ojo;
       ctx.beginPath();
       ctx.arc(ex, ey, 5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "#111";
+      ctx.fillStyle = col.pupila;
       ctx.beginPath();
       ctx.arc(ex + dx * 1.5, ey + dy * 1.5, 2.5, 0, Math.PI * 2);
       ctx.fill();

@@ -1,7 +1,8 @@
 // Motor de Asteroids portado de references/started-games/02-asteroids/game.js,
 // encapsulado en una clase agnóstica de React.
 
-import type { GameEngine, GameState } from "./types";
+import { getSkin, grosorTrazo, DEFAULT_SKIN } from "./skins";
+import type { GameEngine, GameState, SkinDefinition } from "./types";
 
 const W = 800;
 const H = 600;
@@ -12,6 +13,17 @@ const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.hypot(a.x - b.x, a.y - b.y);
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const randInt = (min: number, max: number) => Math.floor(rand(min, max + 1));
+
+// Aplica glow de la skin al contexto actual. Debe usarse entre save()/restore().
+const glow = (
+  ctx: CanvasRenderingContext2D,
+  skin: SkinDefinition,
+  color: string,
+) => {
+  if (skin.brillo <= 0) return;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = skin.brillo;
+};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const POWERUP_DROP_CHANCE = 0.15;
@@ -47,11 +59,20 @@ class Bullet {
     if (this.ttl <= 0) this.dead = true;
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = "#fff";
+  draw(ctx: CanvasRenderingContext2D, skin: SkinDefinition) {
+    ctx.save();
+    ctx.fillStyle = skin.paleta.resalte;
+    glow(ctx, skin, skin.paleta.resalte);
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    // En retro la bala es un cuadrado de un píxel grueso.
+    if (skin.pixelado > 1) {
+      const p = skin.pixelado;
+      ctx.rect(this.x - p / 2, this.y - p / 2, p, p);
+    } else {
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    }
     ctx.fill();
+    ctx.restore();
   }
 }
 
@@ -103,13 +124,14 @@ class Asteroid {
     ];
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, skin: SkinDefinition) {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rot);
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1.5;
-    ctx.lineJoin = "round";
+    ctx.strokeStyle = skin.paleta.secundario;
+    glow(ctx, skin, skin.paleta.secundario);
+    ctx.lineWidth = grosorTrazo(skin, 1.5);
+    ctx.lineJoin = skin.pixelado > 1 ? "miter" : "round";
     ctx.beginPath();
     ctx.moveTo(this.verts[0][0], this.verts[0][1]);
     for (let i = 1; i < this.verts.length; i++)
@@ -146,22 +168,27 @@ class PowerUp {
     if (this.ttl <= 0) this.dead = true;
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, skin: SkinDefinition) {
     if (this.ttl < 2 && Math.floor(this.ttl * 8) % 2 === 0) return;
     const pulse = 0.85 + Math.sin(performance.now() / 150) * 0.15;
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(Math.PI / 4);
-    ctx.strokeStyle = "#0ff";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = skin.paleta.acento;
+    glow(ctx, skin, skin.paleta.acento);
+    ctx.lineWidth = grosorTrazo(skin, 2);
     const r = this.radius * pulse;
     ctx.strokeRect(-r, -r, r * 2, r * 2);
     ctx.restore();
-    ctx.fillStyle = "#0ff";
-    ctx.font = "bold 12px monospace";
+    ctx.save();
+    ctx.fillStyle = skin.paleta.acento;
+    glow(ctx, skin, skin.paleta.acento);
+    // A baja resolución (retro) el texto necesita más tamaño para leerse.
+    ctx.font = `bold ${skin.pixelado > 1 ? 24 : 12}px monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("3x", this.x, this.y);
+    ctx.restore();
   }
 }
 
@@ -236,7 +263,7 @@ class Ship {
     return [new Bullet(ox, oy, this.angle)];
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, skin: SkinDefinition) {
     if (this.dead) return;
     if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0)
       return;
@@ -244,9 +271,10 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1.5;
-    ctx.lineJoin = "round";
+    ctx.strokeStyle = skin.paleta.primario;
+    glow(ctx, skin, skin.paleta.primario);
+    ctx.lineWidth = grosorTrazo(skin, 1.5);
+    ctx.lineJoin = skin.pixelado > 1 ? "miter" : "round";
 
     ctx.beginPath();
     ctx.moveTo(20, 0);
@@ -261,7 +289,9 @@ class Ship {
       ctx.moveTo(-8, -4);
       ctx.lineTo(-8 - rand(6, 14), 0);
       ctx.lineTo(-8, 4);
-      ctx.strokeStyle = "rgba(255, 130, 0, 0.85)";
+      ctx.strokeStyle = skin.paleta.alerta;
+      glow(ctx, skin, skin.paleta.alerta);
+      ctx.globalAlpha = skin.desvanecer ? 0.85 : 1;
       ctx.stroke();
     }
 
@@ -297,14 +327,20 @@ class Particle {
     if (this.ttl <= 0) this.dead = true;
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, skin: SkinDefinition) {
     const alpha = this.ttl / this.life;
-    ctx.strokeStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
-    ctx.lineWidth = 1;
+    // Sin degradados (retro): la partícula se apaga a la mitad de su vida.
+    if (!skin.desvanecer && alpha < 0.5) return;
+    ctx.save();
+    ctx.strokeStyle = skin.paleta.secundario;
+    glow(ctx, skin, skin.paleta.secundario);
+    ctx.globalAlpha = skin.desvanecer ? Number(alpha.toFixed(2)) : 1;
+    ctx.lineWidth = grosorTrazo(skin, 1);
     ctx.beginPath();
     ctx.moveTo(this.x, this.y);
     ctx.lineTo(this.x - this.vx * 0.05, this.y - this.vy * 0.05);
     ctx.stroke();
+    ctx.restore();
   }
 }
 
@@ -312,6 +348,10 @@ type EngineState = "playing" | "dead" | "gameover";
 
 export class AsteroidsGame implements GameEngine {
   private ctx: CanvasRenderingContext2D;
+  private skin: SkinDefinition;
+  // Lienzo auxiliar de baja resolución para los píxeles gruesos (retro).
+  private lowCanvas: HTMLCanvasElement | null = null;
+  private lowCtx: CanvasRenderingContext2D | null = null;
   private keys: Record<string, boolean> = {};
   private spacePressed = false;
   private spaceHeld = false;
@@ -350,10 +390,11 @@ export class AsteroidsGame implements GameEngine {
     this.keys[e.code] = false;
   };
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, skin?: SkinDefinition) {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas");
     this.ctx = ctx;
+    this.skin = skin ?? getSkin(DEFAULT_SKIN);
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
     this.initGame();
@@ -368,6 +409,12 @@ export class AsteroidsGame implements GameEngine {
     if (this.rafId === null) {
       this.rafId = requestAnimationFrame(this.loop);
     }
+  }
+
+  setSkin(skin: SkinDefinition) {
+    this.skin = skin;
+    // En pausa el loop no dibuja: se redibuja el frame congelado con la nueva skin.
+    if (this.paused && this.rafId !== null) this.draw();
   }
 
   pause() {
@@ -555,15 +602,42 @@ export class AsteroidsGame implements GameEngine {
   }
 
   private draw() {
-    const ctx = this.ctx;
-    ctx.fillStyle = "#000";
+    const skin = this.skin;
+    const px = skin.pixelado;
+    const main = this.ctx;
+    let ctx = main;
+
+    if (px > 1) {
+      // Se dibuja en un lienzo W/px x H/px (coordenadas lógicas intactas vía
+      // scale) y se amplía sin suavizado para obtener píxeles gruesos.
+      if (!this.lowCanvas || this.lowCanvas.width !== Math.ceil(W / px)) {
+        this.lowCanvas = document.createElement("canvas");
+        this.lowCanvas.width = Math.ceil(W / px);
+        this.lowCanvas.height = Math.ceil(H / px);
+        this.lowCtx = this.lowCanvas.getContext("2d");
+      }
+      if (this.lowCtx) {
+        ctx = this.lowCtx;
+        ctx.setTransform(1 / px, 0, 0, 1 / px, 0, 0);
+      }
+    }
+
+    ctx.imageSmoothingEnabled = skin.suavizado;
+    ctx.fillStyle = skin.paleta.fondo;
     ctx.fillRect(0, 0, W, H);
 
-    this.particles.forEach((p) => p.draw(ctx));
-    this.asteroids.forEach((a) => a.draw(ctx));
-    this.powerUps.forEach((p) => p.draw(ctx));
-    this.bullets.forEach((b) => b.draw(ctx));
-    this.ship.draw(ctx);
+    this.particles.forEach((p) => p.draw(ctx, skin));
+    this.asteroids.forEach((a) => a.draw(ctx, skin));
+    this.powerUps.forEach((p) => p.draw(ctx, skin));
+    this.bullets.forEach((b) => b.draw(ctx, skin));
+    this.ship.draw(ctx, skin);
+
+    if (ctx !== main && this.lowCanvas) {
+      main.imageSmoothingEnabled = false;
+      main.drawImage(this.lowCanvas, 0, 0, W, H);
+    } else {
+      main.imageSmoothingEnabled = skin.suavizado;
+    }
   }
 
   private loop = (ts: number) => {

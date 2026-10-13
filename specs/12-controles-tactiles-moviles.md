@@ -1,6 +1,6 @@
 # 12 — Controles táctiles para jugar en móviles
 
-**Estado:** approve
+**Estado:** implemented
 **Depende de:** SPEC 07 (motor genérico y registro de juegos), SPEC 05 (Asteroids), SPEC 08 (Caída), SPEC 09 (Bloque Buster), SPEC 10 (Serpentina), SPEC 11 (skins, por el selector del HUD)
 **Fecha:** 2026-10-09
 **Objetivo:** Hacer que los cuatro juegos jugables (Asteroids, Caída, Bloque Buster y Serpentina) se puedan jugar completos en una pantalla táctil, con un gamepad virtual bajo el CRT y un reproductor `/jugar/[id]` usable en móvil.

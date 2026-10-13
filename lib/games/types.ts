@@ -45,10 +45,25 @@ export interface GameEngine {
   setSkin?(skin: SkinDefinition): void;
 }
 
+export interface ControlTactil {
+  /** Texto del botón, p. ej. "◀", "DISPARO". */
+  etiqueta: string;
+  /** `KeyboardEvent.key`, p. ej. "ArrowLeft", " ". */
+  key: string;
+  /** `KeyboardEvent.code`, p. ej. "ArrowLeft", "Space". */
+  code: string;
+  /** Lado del gamepad donde se dibuja. */
+  zona: "izquierda" | "derecha";
+  /** Si existe, repite `keydown` con ese intervalo mientras esté presionado. */
+  repetirMs?: number;
+}
+
 export interface GameDefinition {
   width: number;
   height: number;
   /** Skins que ofrece el juego; si falta, el reproductor no muestra selector. */
   skins?: SkinId[];
+  /** Botones del gamepad virtual; si falta, el reproductor no lo muestra. */
+  controlesTactiles?: ControlTactil[];
   create(canvas: HTMLCanvasElement, skin?: SkinDefinition): GameEngine;
 }

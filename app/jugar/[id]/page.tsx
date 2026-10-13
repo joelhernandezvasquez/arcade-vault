@@ -1,14 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useParams, useRouter, notFound } from "next/navigation";
 import { getGames, type Game } from "@/lib/supabase/games";
 import { useUser } from "@/components/UserProvider";
 import { saveScore } from "@/lib/supabase/scores";
 import GameCanvas, { GameCanvasHandle } from "@/components/games/GameCanvas";
+import TouchControls from "@/components/games/TouchControls";
 import { ENGINES } from "@/lib/games/registry";
 import { getSkin, guardarSkin, leerSkinGuardada } from "@/lib/games/skins";
 import type { GameState, SkinId } from "@/lib/games/types";
+
+const QUERY_TACTIL = "(pointer: coarse)";
+
+// Táctil si el puntero principal es "coarse" o si se fuerza con ?touch=1.
+function suscribirTactil(cb: () => void) {
+  const mq = window.matchMedia(QUERY_TACTIL);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+function leerTactil() {
+  return (
+    window.matchMedia(QUERY_TACTIL).matches ||
+    new URLSearchParams(window.location.search).get("touch") === "1"
+  );
+}
 
 export default function GamePlayerPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +39,11 @@ export default function GamePlayerPage() {
   const [engineLevel, setEngineLevel] = useState(1);
   const level = definition ? engineLevel : Math.floor(score / 2500) + 1;
   const [paused, setPaused] = useState(false);
+  const esTactil = useSyncExternalStore(
+    suscribirTactil,
+    leerTactil,
+    () => false,
+  );
   const [skin, setSkin] = useState<SkinId>(leerSkinGuardada);
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : "INVITADO");
@@ -80,7 +101,7 @@ export default function GamePlayerPage() {
   return (
     <div className="av-player fade-in">
       <div className="player-hud">
-        <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+        <div className="hud-stats">
           <div className="hud-stat">
             <div className="l">Jugador</div>
             <div className="v" style={{ color: "var(--ink)" }}>
@@ -191,6 +212,13 @@ export default function GamePlayerPage() {
           <span>CARGA · 1MB</span>
         </div>
       </div>
+
+      {esTactil && definition?.controlesTactiles && (
+        <TouchControls
+          controles={definition.controlesTactiles}
+          deshabilitado={paused || over}
+        />
+      )}
 
       {over && (
         <div className="modal-bd">

@@ -1380,3 +1380,11 @@ a { color: inherit; text-decoration: none; }
   .modal .actions { margin-top: 10px; }
 }
 @media (orientation: landscape) and (max-height: 500px) and (min-width: 841px) { .av-player { --nav-h: 90px; } }
+
+/* ===== diagnóstico: ?perf=1&nocrt=1 desactiva el CSS global caro (spec 13) ===== */
+html[data-perf-nocrt] .av-bg::before,
+html[data-perf-nocrt] .av-bg::after,
+html[data-perf-nocrt] .av-noise,
+html[data-perf-nocrt] .crt-screen::before,
+html[data-perf-nocrt] .crt-screen::after { display: none; }
+html[data-perf-nocrt] .av-nav { backdrop-filter: none; }

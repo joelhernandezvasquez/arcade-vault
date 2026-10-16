@@ -2,11 +2,17 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { getSkin } from "@/lib/games/skins";
-import type { GameDefinition, GameState, SkinId } from "@/lib/games/types";
+import type {
+  GameDefinition,
+  GameState,
+  PerfSnapshot,
+  SkinId,
+} from "@/lib/games/types";
 
 export interface GameCanvasHandle {
   reset: () => void;
   forceGameOver: () => void;
+  getPerf: () => PerfSnapshot | undefined;
 }
 
 interface GameCanvasProps {
@@ -46,6 +52,7 @@ const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(
     useImperativeHandle(ref, () => ({
       reset: () => engineRef.current?.reset(),
       forceGameOver: () => engineRef.current?.forceGameOver(),
+      getPerf: () => engineRef.current?.getPerf?.(),
     }));
 
     return (

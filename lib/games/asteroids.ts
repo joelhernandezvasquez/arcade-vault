@@ -2,7 +2,13 @@
 // encapsulado en una clase agnóstica de React.
 
 import { getSkin, grosorTrazo, DEFAULT_SKIN } from "./skins";
-import type { GameEngine, GameState, SkinDefinition } from "./types";
+import type {
+  GameEngine,
+  GameState,
+  PerfSnapshot,
+  SkinDefinition,
+} from "./types";
+import { FramePacer } from "./perf";
 
 const W = 800;
 const H = 600;
@@ -371,6 +377,7 @@ export class AsteroidsGame implements GameEngine {
 
   private paused = false;
   private lastTime: number | null = null;
+  private pacer = new FramePacer(60);
   private rafId: number | null = null;
   private onStateChangeCb: ((s: GameState) => void) | null = null;
   private lastReported: GameState | null = null;
@@ -640,15 +647,25 @@ export class AsteroidsGame implements GameEngine {
     }
   }
 
+  getPerf(): PerfSnapshot {
+    return this.pacer.snapshot();
+  }
+
   private loop = (ts: number) => {
+    if (!this.pacer.shouldRun(ts)) {
+      this.rafId = requestAnimationFrame(this.loop);
+      return;
+    }
     if (!this.paused) {
       const dt =
         this.lastTime === null
           ? 0
           : Math.min((ts - this.lastTime) / 1000, 0.05);
       this.lastTime = ts;
+      this.pacer.begin();
       this.update(dt);
       this.draw();
+      this.pacer.end();
       this.reportState();
     } else {
       this.lastTime = null;

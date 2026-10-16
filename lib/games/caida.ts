@@ -1,7 +1,8 @@
 // Motor de Tetris (CAÍDA) portado de references/started-games/03-tetris/game.js,
 // encapsulado en una clase agnóstica de React.
 
-import type { GameEngine, GameState } from "./types";
+import type { GameEngine, GameState, PerfSnapshot } from "./types";
+import { FramePacer } from "./perf";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const W = 800;
@@ -125,6 +126,7 @@ export class CaidaGame implements GameEngine {
 
   private paused = false;
   private lastTime: number | null = null;
+  private pacer = new FramePacer(60);
   private rafId: number | null = null;
   private onStateChangeCb: ((s: GameState) => void) | null = null;
   private lastReported: GameState | null = null;
@@ -469,12 +471,21 @@ export class CaidaGame implements GameEngine {
     this.drawControls();
   }
 
+  getPerf(): PerfSnapshot {
+    return this.pacer.snapshot();
+  }
+
   private loop = (ts: number) => {
+    if (!this.pacer.shouldRun(ts)) {
+      this.rafId = requestAnimationFrame(this.loop);
+      return;
+    }
     this.rafId = null;
     if (!this.paused) {
       const dt =
         this.lastTime === null ? 0 : Math.min(ts - this.lastTime, MAX_DT);
       this.lastTime = ts;
+      this.pacer.begin();
       this.dropAccum += dt;
       if (this.dropAccum >= this.dropInterval) {
         this.dropAccum = 0;
@@ -484,8 +495,12 @@ export class CaidaGame implements GameEngine {
           this.current.y++;
         else this.lockPiece();
       }
-      if (this.gameOver) return;
+      if (this.gameOver) {
+        this.pacer.end();
+        return;
+      }
       this.draw();
+      this.pacer.end();
       this.reportState();
     } else {
       this.lastTime = null;

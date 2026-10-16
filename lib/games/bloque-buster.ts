@@ -2,7 +2,13 @@
 // (game.js, levels.js, assets/spritesheet.js), encapsulado en una clase agnóstica de React.
 
 import { DEFAULT_SKIN, getSkin, grosorTrazo } from "./skins";
-import type { GameEngine, GameState, SkinDefinition } from "./types";
+import type {
+  GameEngine,
+  GameState,
+  PerfSnapshot,
+  SkinDefinition,
+} from "./types";
+import { FramePacer } from "./perf";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const W = 800;
@@ -219,6 +225,7 @@ export class BloqueBusterGame implements GameEngine {
   private destroyed = false;
   private paused = false;
   private lastTime: number | null = null;
+  private pacer = new FramePacer(60);
   private rafId: number | null = null;
   private onStateChangeCb: ((s: GameState) => void) | null = null;
   private lastReported: GameState | null = null;
@@ -679,7 +686,15 @@ export class BloqueBusterGame implements GameEngine {
     this.drawFrame(BALL_SPRITE, ball.x, ball.y, ball.w, ball.h);
   }
 
+  getPerf(): PerfSnapshot {
+    return this.pacer.snapshot();
+  }
+
   private loop = (ts: number) => {
+    if (!this.pacer.shouldRun(ts)) {
+      this.rafId = requestAnimationFrame(this.loop);
+      return;
+    }
     this.rafId = null;
     if (!this.paused) {
       const dt =
@@ -687,9 +702,14 @@ export class BloqueBusterGame implements GameEngine {
           ? 0
           : Math.min((ts - this.lastTime) / 1000, MAX_DT);
       this.lastTime = ts;
+      this.pacer.begin();
       this.update(dt);
-      if (this.gameOver) return;
+      if (this.gameOver) {
+        this.pacer.end();
+        return;
+      }
       this.draw();
+      this.pacer.end();
       this.reportState();
     } else {
       this.lastTime = null;

@@ -6,6 +6,7 @@ import { getGames, type Game } from "@/lib/supabase/games";
 import { useUser } from "@/components/UserProvider";
 import { saveScore } from "@/lib/supabase/scores";
 import GameCanvas, { GameCanvasHandle } from "@/components/games/GameCanvas";
+import PerfOverlay from "@/components/games/PerfOverlay";
 import TouchControls from "@/components/games/TouchControls";
 import { ENGINES } from "@/lib/games/registry";
 import { getSkin, guardarSkin, leerSkinGuardada } from "@/lib/games/skins";
@@ -26,6 +27,14 @@ function leerTactil() {
   );
 }
 
+// Parámetros de diagnóstico: ?perf=1 muestra el overlay; ?nocrt=1 (con perf) desactiva el CSS global caro.
+const noSuscribir = () => () => {};
+const leerPerf = () =>
+  new URLSearchParams(window.location.search).get("perf") === "1";
+const leerNoCrt = () =>
+  leerPerf() &&
+  new URLSearchParams(window.location.search).get("nocrt") === "1";
+
 export default function GamePlayerPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -44,11 +53,19 @@ export default function GamePlayerPage() {
     leerTactil,
     () => false,
   );
+  const verPerf = useSyncExternalStore(noSuscribir, leerPerf, () => false);
+  const sinCrt = useSyncExternalStore(noSuscribir, leerNoCrt, () => false);
   const [skin, setSkin] = useState<SkinId>(leerSkinGuardada);
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : "INVITADO");
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState(false);
+
+  useEffect(() => {
+    if (!sinCrt) return;
+    document.documentElement.setAttribute("data-perf-nocrt", "");
+    return () => document.documentElement.removeAttribute("data-perf-nocrt");
+  }, [sinCrt]);
 
   useEffect(() => {
     getGames().then((games) => setGame(games.find((g) => g.id === id) ?? null));
@@ -181,6 +198,13 @@ export default function GamePlayerPage() {
               <div className="enemy e3"></div>
               <div className="player-ship"></div>
             </div>
+          )}
+          {verPerf && definition && (
+            <PerfOverlay
+              gameId={game.id}
+              skin={skin}
+              getPerf={() => engineRef.current?.getPerf()}
+            />
           )}
           {paused && (
             <div

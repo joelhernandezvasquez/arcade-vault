@@ -33,6 +33,17 @@ export interface SkinDefinition {
   desvanecer: boolean;
 }
 
+export interface PerfSnapshot {
+  /** Fotogramas ejecutados (update + draw) por segundo. */
+  fps: number;
+  /** Callbacks de requestAnimationFrame por segundo, con o sin tope. */
+  rafFps: number;
+  /** Milisegundos de update + draw por fotograma ejecutado. */
+  avgMs: number;
+  p95Ms: number;
+  maxMs: number;
+}
+
 export interface GameEngine {
   start(): void;
   pause(): void;
@@ -43,6 +54,8 @@ export interface GameEngine {
   onStateChange(cb: (s: GameState) => void): void;
   /** Cambia la skin en caliente, sin reiniciar la partida ni emitir estado. */
   setSkin?(skin: SkinDefinition): void;
+  /** Estadísticas de rendimiento de la última ventana (solo diagnóstico). */
+  getPerf?(): PerfSnapshot;
 }
 
 export interface ControlTactil {

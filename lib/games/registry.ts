@@ -1,6 +1,7 @@
 import { AsteroidsGame } from "./asteroids";
 import { BloqueBusterGame } from "./bloque-buster";
 import { CaidaGame } from "./caida";
+import { RanariaGame } from "./ranaria";
 import { SerpentinaGame } from "./serpentina";
 import { SKIN_IDS, getSkin } from "./skins";
 import type { ControlTactil, GameDefinition } from "./types";
@@ -67,5 +68,19 @@ export const ENGINES: Record<string, GameDefinition> = {
     ],
     create: (canvas, skin) =>
       new SerpentinaGame(canvas, skin ?? getSkin("clasico")),
+  },
+  ranaria: {
+    width: 800,
+    height: 600,
+    skins: SKIN_IDS,
+    // Un toque, un salto: sin repetición.
+    controlesTactiles: [
+      flecha("Up", "▲"),
+      flecha("Left", "◀"),
+      flecha("Right", "▶"),
+      flecha("Down", "▼"),
+    ],
+    create: (canvas, skin) =>
+      new RanariaGame(canvas, skin ?? getSkin("clasico")),
   },
 };

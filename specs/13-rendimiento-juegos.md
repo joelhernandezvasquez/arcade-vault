@@ -1,6 +1,6 @@
 # 13 — Rendimiento de los juegos: medir primero, optimizar después
 
-**Estado:** approvado
+**Estado:** implementado
 **Depende de:** SPEC 07 (motor genérico y registro de juegos), SPEC 11 (skins), SPEC 12 (controles táctiles, por el reproductor), y el juego Ranaria ([specs/game-jam/frogger/frogger-core.md](game-jam/frogger/frogger-core.md))
 **Fecha:** 2026-10-16
 **Objetivo:** Añadir una medición de rendimiento (`?perf=1`) al reproductor y, con esos datos, un tope de 60 fps y las optimizaciones que hagan falta, hasta que cada juego con cada skin supere los 55 fps medios en el equipo del usuario.

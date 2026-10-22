@@ -8,11 +8,13 @@ import {
   getErrorMessage,
   signUp,
   requestPasswordReset,
+  iniciarConProveedor,
 } from "@/lib/supabase/auth";
 
 type Mode = "in" | "up" | "recover";
 
 const LINK_ERROR = "EL ENLACE NO ES VÁLIDO O YA EXPIRÓ";
+const PROVIDER_ERROR = "NO SE PUDO ENTRAR CON ESE PROVEEDOR";
 
 const errorStyle = {
   marginBottom: 10,
@@ -41,7 +43,7 @@ function safePath(next: string | null) {
 function AuthForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const { user } = useUser();
+  const { user, sinAlias } = useUser();
   const next = safePath(params.get("next"));
 
   const [mode, setMode] = useState<Mode>("in");
@@ -54,8 +56,12 @@ function AuthForm() {
 
   useEffect(() => {
     // Con sesión (ya activa o recién iniciada) respeta ?next; por defecto /biblioteca.
-    if (user) router.replace(next);
-  }, [user, router, next]);
+    if (!user) return;
+    // Sin alias (entró por OAuth): primero lo elige, conservando ?next.
+    router.replace(
+      sinAlias ? `/auth/alias?next=${encodeURIComponent(next)}` : next,
+    );
+  }, [user, sinAlias, router, next]);
 
   const changeMode = (m: Mode) => {
     setMode(m);
@@ -88,8 +94,28 @@ function AuthForm() {
     setSubmitting(false);
   };
 
+  const oauth = async (provider: "google" | "github") => {
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      // Redirige al proveedor; solo se vuelve aquí si falla antes de salir.
+      await iniciarConProveedor(provider, next);
+    } catch {
+      setError(PROVIDER_ERROR);
+      setSubmitting(false);
+    }
+  };
+
+  const queryError = params.get("error");
   const visibleError =
-    error ?? (params.get("error") === "link" ? LINK_ERROR : null);
+    error ??
+    (queryError === "link"
+      ? LINK_ERROR
+      : queryError === "proveedor"
+        ? PROVIDER_ERROR
+        : null);
   const buttonLabel =
     mode === "in"
       ? "ENTRAR AL VAULT"
@@ -239,16 +265,16 @@ function AuthForm() {
           <button
             className="btn ghost"
             type="button"
-            disabled
-            title="PRÓXIMAMENTE"
+            disabled={submitting}
+            onClick={() => void oauth("google")}
           >
             ◆ GOOGLE
           </button>
           <button
             className="btn ghost"
             type="button"
-            disabled
-            title="PRÓXIMAMENTE"
+            disabled={submitting}
+            onClick={() => void oauth("github")}
           >
             ▣ GITHUB
           </button>

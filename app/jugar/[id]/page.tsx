@@ -245,6 +245,7 @@ export default function GamePlayerPage() {
             <div className="final">{score.toLocaleString("es-ES")}</div>
             {!saved ? (
               <div className="input-row">
+                {/* Sin alias (sinAlias) el alias es "": se trata como invitado. */}
                 {user?.alias ? (
                   <button
                     className="btn yellow"

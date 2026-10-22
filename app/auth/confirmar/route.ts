@@ -15,6 +15,19 @@ export async function GET(request: NextRequest) {
       ? next
       : "/biblioteca";
 
+  // OAuth: el proveedor devuelve `?error=` si el jugador cancela o falla.
+  if (searchParams.get("error")) {
+    return NextResponse.redirect(new URL("/auth?error=proveedor", origin));
+  }
+
+  const code = searchParams.get("code");
+  if (code) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) return NextResponse.redirect(new URL(destination, origin));
+    return NextResponse.redirect(new URL("/auth?error=proveedor", origin));
+  }
+
   if (tokenHash && type && OTP_TYPES.includes(type)) {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({

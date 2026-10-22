@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Arcade Vault — a platform for playing retro arcade games online and competing for high scores. All user-facing copy, specs, and code comments are in **Spanish**; keep new UI text and specs in Spanish.
 
-Features implemented so far (specs 01–14 in [specs/](specs/)):
+Features implemented so far (specs 01–15 in [specs/](specs/)):
 
 - Visual screens ported from the design templates in [references/templates/](references/templates/): home landing, library, game detail, player, hall of fame, auth, and about.
 - Contact form on `/acerca-de` that sends real email via Resend.
@@ -36,19 +36,20 @@ A project hook in [.claude/settings.local.json](.claude/settings.local.json) aut
 
 ### Routes ([app/](app/))
 
-| Route                      | Purpose                                                                  |
-| -------------------------- | ------------------------------------------------------------------------ |
-| `/`                        | Home landing                                                             |
-| `/biblioteca`              | Game library with category filter (`CATS` in [lib/data.ts](lib/data.ts)) |
-| `/juego/[id]`              | Game detail and top-10 scores                                            |
-| `/jugar/[id]`              | Player: CRT frame, HUD, pause, game-over modal, score submission         |
-| `/salon`                   | Hall of fame (leaderboard tabs per game)                                 |
-| `/auth`                    | Email/password sign in, sign up, and password recovery (Supabase Auth)   |
-| `/auth/nueva-clave`        | Set a new password (needs the session created by the recovery link)      |
-| `GET /auth/confirmar`      | Email-link handler: `verifyOtp` with `token_hash`, then redirects        |
-| `/acerca-de`               | About page and contact form                                              |
-| `POST /api/contact`        | Sends the contact form through Resend                                    |
-| `GET /api/supabase-health` | Supabase connectivity check (`{ ok }`)                                   |
+| Route                      | Purpose                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `/`                        | Home landing                                                                                                  |
+| `/biblioteca`              | Game library with category filter (`CATS` in [lib/data.ts](lib/data.ts))                                      |
+| `/juego/[id]`              | Game detail and top-10 scores                                                                                 |
+| `/jugar/[id]`              | Player: CRT frame, HUD, pause, game-over modal, score submission                                              |
+| `/salon`                   | Hall of fame (leaderboard tabs per game)                                                                      |
+| `/auth`                    | Email/password sign in, sign up, and password recovery (Supabase Auth)                                        |
+| `/auth/nueva-clave`        | Set a new password (needs the session created by the recovery link)                                           |
+| `/auth/alias`              | Pick a unique alias after the first OAuth sign in (no `profiles` row)                                         |
+| `GET /auth/confirmar`      | Email-link and OAuth handler: `verifyOtp` (`token_hash`) or `exchangeCodeForSession` (`code`), then redirects |
+| `/acerca-de`               | About page and contact form                                                                                   |
+| `POST /api/contact`        | Sends the contact form through Resend                                                                         |
+| `GET /api/supabase-health` | Supabase connectivity check (`{ ok }`)                                                                        |
 
 Pages are client components that fetch from Supabase on mount and show a `CARGANDO...` state while loading.
 
@@ -57,9 +58,9 @@ Pages are client components that fetch from Supabase on mount and show a `CARGAN
 - [lib/supabase/client.ts](lib/supabase/client.ts) (browser) and [lib/supabase/server.ts](lib/supabase/server.ts) (server, cookie-based) are `@supabase/ssr` clients.
 - [lib/supabase/games.ts](lib/supabase/games.ts) has `getGames()`. [lib/supabase/scores.ts](lib/supabase/scores.ts) has `saveScore`, `getTopScores`, and `getBestScore`, and maps snake_case rows to camelCase `ScoreRow`.
 - The schema lives in [supabase/migrations/](supabase/migrations/): the `games` table (catalog, ordered by `sort_order`) and the `scores` table, with RLS that allows public select (`anon` and `authenticated`). Only an authenticated player can insert a score, and only with their own `user_id` and alias (`scores_insert_own`). Catalog changes ship as new numbered migrations (`INSERT` for a new game, `UPDATE` to change an existing entry). The Supabase MCP is configured in [.mcp.json](.mcp.json).
-- Auth is **Supabase Auth** (email + password, "Confirm email" on, custom SMTP through Resend; dashboard setup is documented in [specs/14-autenticacion-email-supabase.md](specs/14-autenticacion-email-supabase.md)). The unique player alias lives in `profiles` (migration `0004_auth_perfiles.sql`): the `handle_new_user` trigger creates it from `user_metadata.alias`, and `alias_disponible()` checks availability before sign up. [lib/supabase/auth.ts](lib/supabase/auth.ts) has the auth calls and `getErrorMessage`, which translates Supabase errors to Spanish.
-- [components/UserProvider.tsx](components/UserProvider.tsx) exposes `useUser()` → `{ user: { id, email, alias } | null, cargando, signOut }`, listening to `onAuthStateChange`. A session without a profile has `alias: ""`. [proxy.ts](proxy.ts) only refreshes the session on each request; it protects no route.
-- Guests can play but their score is **not** saved: the game-over modal offers `/auth?next=/jugar/<id>`. Scores from before auth keep `user_id = null`.
+- Auth is **Supabase Auth** (email + password, plus Google and GitHub OAuth from spec 15 via `iniciarConProveedor`; provider setup is in [specs/15-autenticacion-oauth-google-github.md](specs/15-autenticacion-oauth-google-github.md); "Confirm email" on, custom SMTP through Resend; dashboard setup is documented in [specs/14-autenticacion-email-supabase.md](specs/14-autenticacion-email-supabase.md)). The unique player alias lives in `profiles` (migration `0004_auth_perfiles.sql`): the `handle_new_user` trigger creates it from `user_metadata.alias`, and `alias_disponible()` checks availability before sign up. [lib/supabase/auth.ts](lib/supabase/auth.ts) has the auth calls and `getErrorMessage`, which translates Supabase errors to Spanish.
+- [components/UserProvider.tsx](components/UserProvider.tsx) exposes `useUser()` → `{ user: { id, email, alias } | null, cargando, signOut }`, listening to `onAuthStateChange`. A session without a profile has `alias: ""` and `sinAlias: true`: `UserProvider` then redirects every page except `/auth/alias` (and `/auth`, which handles it itself) to `/auth/alias?next=<path>`, where `crearPerfil` inserts the row (`profiles_insert_own`, migration `0005_perfil_propio.sql`) and `recargarPerfil()` refreshes the context. [proxy.ts](proxy.ts) only refreshes the session on each request; it protects no route.
+- Guests (and `sinAlias` sessions) can play but their score is **not** saved: the game-over modal offers `/auth?next=/jugar/<id>`. Scores from before auth keep `user_id = null`.
 - Environment variables (see [.env.local.example](.env.local.example)): `RESEND_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
 ### Game engines ([lib/games/](lib/games/))

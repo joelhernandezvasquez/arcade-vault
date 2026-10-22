@@ -29,16 +29,18 @@ function toScoreRow(row: ScoreRecord): ScoreRow {
 export async function saveScore({
   gameId,
   score,
+  userId,
   name,
 }: {
   gameId: string;
   score: number;
+  userId: string;
   name: string;
 }): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase
     .from("scores")
-    .insert({ game_id: gameId, score, name });
+    .insert({ game_id: gameId, score, user_id: userId, name });
 
   if (error) throw error;
 }

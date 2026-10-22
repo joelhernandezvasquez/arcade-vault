@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { useParams, useRouter, notFound } from "next/navigation";
 import { getGames, type Game } from "@/lib/supabase/games";
 import { useUser } from "@/components/UserProvider";
@@ -57,7 +58,6 @@ export default function GamePlayerPage() {
   const sinCrt = useSyncExternalStore(noSuscribir, leerNoCrt, () => false);
   const [skin, setSkin] = useState<SkinId>(leerSkinGuardada);
   const [over, setOver] = useState(false);
-  const [name, setName] = useState(user ? user.name : "INVITADO");
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState(false);
 
@@ -70,13 +70,6 @@ export default function GamePlayerPage() {
   useEffect(() => {
     getGames().then((games) => setGame(games.find((g) => g.id === id) ?? null));
   }, [id]);
-
-  useEffect(() => {
-    // Syncs the editable initials field once the persisted session finishes
-    // loading (async, resolved after mount by UserProvider).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (user) setName(user.name);
-  }, [user]);
 
   useEffect(() => {
     if (definition || over || paused) return;
@@ -122,7 +115,7 @@ export default function GamePlayerPage() {
           <div className="hud-stat">
             <div className="l">Jugador</div>
             <div className="v" style={{ color: "var(--ink)" }}>
-              {name}
+              {user?.alias || "INVITADO"}
             </div>
           </div>
           <div className="hud-stat">
@@ -252,24 +245,31 @@ export default function GamePlayerPage() {
             <div className="final">{score.toLocaleString("es-ES")}</div>
             {!saved ? (
               <div className="input-row">
-                <input
-                  value={name}
-                  onChange={(e) =>
-                    setName(e.target.value.toUpperCase().slice(0, 10))
-                  }
-                  placeholder="TUS INICIALES"
-                />
-                <button
-                  className="btn yellow"
-                  onClick={() => {
-                    setSaveError(false);
-                    saveScore({ gameId: game.id, score, name })
-                      .then(() => setSaved(true))
-                      .catch(() => setSaveError(true));
-                  }}
-                >
-                  GUARDAR PUNTUACIÓN
-                </button>
+                {user?.alias ? (
+                  <button
+                    className="btn yellow"
+                    onClick={() => {
+                      setSaveError(false);
+                      saveScore({
+                        gameId: game.id,
+                        score,
+                        userId: user.id,
+                        name: user.alias,
+                      })
+                        .then(() => setSaved(true))
+                        .catch(() => setSaveError(true));
+                    }}
+                  >
+                    GUARDAR PUNTUACIÓN
+                  </button>
+                ) : (
+                  <Link
+                    className="btn yellow"
+                    href={`/auth?next=/jugar/${game.id}`}
+                  >
+                    INICIA SESIÓN PARA GUARDAR TU PUNTAJE
+                  </Link>
+                )}
                 {saveError && (
                   <div
                     className="mono"

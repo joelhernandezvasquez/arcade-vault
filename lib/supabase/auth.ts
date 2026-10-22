@@ -50,6 +50,27 @@ export async function signUp({
   if (error) throw error;
 }
 
+// Perfil de un jugador que entró por OAuth y todavía no tiene alias.
+export async function crearPerfil(
+  userId: string,
+  alias: string,
+): Promise<void> {
+  const normalizedAlias = alias.trim().toUpperCase();
+  if (!ALIAS_REGEX.test(normalizedAlias)) {
+    throw new ValidationError(MSG_ALIAS_FORMAT);
+  }
+  if (!(await isAliasAvailable(normalizedAlias))) {
+    throw new ValidationError(MSG_ALIAS_TAKEN);
+  }
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .insert({ id: userId, alias: normalizedAlias });
+
+  if (error) throw error;
+}
+
 export async function signIn({
   email,
   password,
@@ -61,6 +82,22 @@ export async function signIn({
   const { error } = await supabase.auth.signInWithPassword({
     email: email.trim(),
     password,
+  });
+
+  if (error) throw error;
+}
+
+// Redirige el navegador al proveedor; la sesión se crea en /auth/confirmar.
+export async function iniciarConProveedor(
+  provider: "google" | "github",
+  next: string,
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: `${location.origin}/auth/confirmar?next=${encodeURIComponent(next)}`,
+    },
   });
 
   if (error) throw error;

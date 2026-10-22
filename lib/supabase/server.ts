@@ -15,7 +15,7 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, options),
             );
           } catch {
             // El método `setAll` fue llamado desde un Server Component.
@@ -23,6 +23,6 @@ export async function createClient() {
           }
         },
       },
-    }
+    },
   );
 }

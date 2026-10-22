@@ -33,12 +33,12 @@ export default function SalonPage() {
   }, [tab]);
 
   useEffect(() => {
-    if (!tab || !user) {
+    if (!tab || !user?.alias) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setBestScore(null);
       return;
     }
-    getBestScore(tab, user.name).then(setBestScore);
+    getBestScore(tab, user.alias).then(setBestScore);
   }, [tab, user]);
 
   if (!games || !tab || !rows) {

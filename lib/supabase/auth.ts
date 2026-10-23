@@ -6,6 +6,11 @@ export const PASSWORD_MIN = 8;
 const MSG_ALIAS_FORMAT = "EL ALIAS DEBE TENER 3 A 10 CARACTERES: A-Z, 0-9 O _";
 const MSG_ALIAS_TAKEN = "ESE ALIAS YA ESTÁ EN USO";
 const MSG_PASSWORD_TOO_SHORT = `LA CONTRASEÑA DEBE TENER AL MENOS ${PASSWORD_MIN} CARACTERES`;
+const MSG_PASSWORD_LEAKED =
+  "ESA CONTRASEÑA APARECE EN FILTRACIONES, ELIGE OTRA";
+const MSG_PASSWORD_CHARACTERS =
+  "LA CONTRASEÑA NECESITA MINÚSCULA, MAYÚSCULA, NÚMERO Y SÍMBOLO";
+const MSG_RATE_LIMIT = "DEMASIADOS INTENTOS, ESPERA UN MOMENTO";
 
 // Errores de validación propios: ya vienen en español.
 class ValidationError extends Error {}
@@ -125,9 +130,16 @@ export async function changePassword(password: string): Promise<void> {
 export function getErrorMessage(error: unknown): string {
   if (error instanceof ValidationError) return error.message;
 
-  const e = error as { code?: string; message?: string; status?: number };
+  const e = error as {
+    code?: string;
+    message?: string;
+    status?: number;
+    reasons?: string[];
+  };
   const code = e?.code ?? "";
   const message = (e?.message ?? "").toLowerCase();
+
+  if (e?.status === 429) return MSG_RATE_LIMIT;
 
   switch (code) {
     case "invalid_credentials":
@@ -135,12 +147,14 @@ export function getErrorMessage(error: unknown): string {
     case "email_not_confirmed":
       return "CONFIRMA TU CORREO ANTES DE ENTRAR";
     case "weak_password":
+      if (e.reasons?.includes("pwned")) return MSG_PASSWORD_LEAKED;
+      if (e.reasons?.includes("characters")) return MSG_PASSWORD_CHARACTERS;
       return MSG_PASSWORD_TOO_SHORT;
     case "same_password":
       return "LA NUEVA CONTRASEÑA DEBE SER DISTINTA A LA ANTERIOR";
     case "over_email_send_rate_limit":
     case "over_request_rate_limit":
-      return "DEMASIADOS INTENTOS, ESPERA UN MOMENTO";
+      return MSG_RATE_LIMIT;
     case "email_address_invalid":
     case "validation_failed":
       return "EL CORREO NO ES VÁLIDO";
